@@ -18,9 +18,9 @@
 
 #define ERLFDB_MAX_ATOM_LENGTH 255
 
-#define T2(e, a, b) enif_make_tuple2(e, a, b);
-#define T3(e, a, b, c) enif_make_tuple3(e, a, b, c);
-#define T4(e, a, b, c, d) enif_make_tuple4(e, a, b, c, d);
+#define T2(e, a, b) enif_make_tuple2(e, a, b)
+#define T3(e, a, b, c) enif_make_tuple3(e, a, b, c)
+#define T4(e, a, b, c, d) enif_make_tuple4(e, a, b, c, d)
 
 ERL_NIF_TERM erlfdb_erlang_error(ErlNifEnv* env, fdb_error_t err);
 

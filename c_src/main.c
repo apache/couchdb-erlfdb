@@ -67,6 +67,58 @@ erlfdb_network_thread(void* arg)
 }
 
 
+static void
+erlfdb_future_cb(FDBFuture* fdb_future, void* data)
+{
+    ErlFDBFuture* future = (ErlFDBFuture*) data;
+    ErlNifEnv* caller;
+    ERL_NIF_TERM msg;
+
+    // FoundationDB callbacks can fire from the thread
+    // that created them. Check if we were actually
+    // submitted to the network thread or not so that
+    // we pass the correct environment to enif_send
+    if(enif_thread_type() == ERL_NIF_THR_UNDEFINED) {
+        caller = NULL;
+    } else {
+        caller = future->pid_env;
+    }
+
+    msg = T2(future->msg_env, ATOM_ready, future->msg_ref);
+    enif_send(caller, &(future->pid), future->msg_env, msg);
+
+    return;
+}
+
+
+static ERL_NIF_TERM
+erlfdb_create_future(ErlNifEnv* env, FDBFuture* future, ErlFDBFutureType ftype)
+{
+    ErlFDBFuture* f;
+    ERL_NIF_TERM ref = enif_make_ref(env);
+    ERL_NIF_TERM ret;
+    fdb_error_t err;
+
+    f = enif_alloc_resource(ErlFDBFutureRes, sizeof(ErlFDBFuture));
+    f->future = future;
+    f->ftype = ftype;
+    enif_self(env, &(f->pid));
+    f->pid_env = env;
+    f->msg_env = enif_alloc_env();
+    f->msg_ref = enif_make_copy(f->msg_env, ref);
+
+    err = fdb_future_set_callback(
+            f->future, erlfdb_future_cb, (void*) future);
+
+    if(err != 0) {
+        enif_release_resource(f);
+        return erlfdb_erlang_error(env, err);
+    }
+
+    ret = enif_make_resource(env, f);
+    return T2(env, ATOM_ok, T3(env, ATOM_erlfdb_future, ref, ret));
+}
+
 
 static int
 erlfdb_load(ErlNifEnv* env, void** priv, ERL_NIF_TERM num_schedulers)
@@ -328,13 +380,11 @@ erlfdb_future_get_error(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
 
 static ERL_NIF_TERM
-erlfdb_future_get_version(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+erlfdb_future_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
     ErlFDBFuture* future;
-    fdb_error_t err;
-    int64_t vsn;
-    ErlNifSInt64 erl_vsn;
+    //fdb_error_t err;
     void* res;
 
     if(st->lib_state != ErlFDB_CONNECTED) {
@@ -350,14 +400,46 @@ erlfdb_future_get_version(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     }
     future = (ErlFDBFuture*) res;
 
-    err = fdb_future_get_version(future->future, &vsn);
-    if(err != 0) {
-        return erlfdb_erlang_error(env, err);
+
+    return ATOM_error;
+}
+
+
+static ERL_NIF_TERM
+erlfdb_create_cluster(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    FDBFuture* future;
+    ErlNifBinary bin;
+
+    if(st->lib_state != ErlFDB_CONNECTED) {
+        return enif_make_badarg(env);
     }
 
-    erl_vsn = (ErlNifSInt64) vsn;
-    return enif_make_int(env, erl_vsn);
+    if(argc != 1) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_inspect_binary(env, argv[0], &bin)) {
+        return enif_make_badarg(env);
+    }
+
+    if(bin.size < 1 || bin.data[bin.size - 1] != 0) {
+        return enif_make_badarg(env);
+    }
+
+    future = fdb_create_cluster((const char*) bin.data);
+
+    return erlfdb_create_future(env, future, ErlFDB_FT_CLUSTER);
 }
+
+
+// erlfdb_cluster_set_option(_Cluster, _ClusterOption) -> ?NOT_LOADED.
+// erlfdb_cluster_set_option(_Cluster, _ClusterOption, _Value) -> ?NOT_LOADED.
+// erlfdb_cluster_create_database(_Cluster, _DbName) -> ?NOT_LOADED.
+
+
+
 
 
 #define NIF_FUNC(name, arity) {#name, arity, name}
@@ -374,7 +456,9 @@ static ErlNifFunc funcs[] =
     NIF_FUNC(erlfdb_future_cancel, 1),
     NIF_FUNC(erlfdb_future_is_ready, 1),
     NIF_FUNC(erlfdb_future_get_error, 1),
-    NIF_FUNC(erlfdb_future_get_version, 1)
+    NIF_FUNC(erlfdb_future_get, 1),
+
+    NIF_FUNC(erlfdb_create_cluster, 1)
 };
 #undef NIF_FUNC
 

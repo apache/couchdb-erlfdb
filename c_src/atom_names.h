@@ -17,6 +17,13 @@ ATOM_MAP(error);
 ATOM_MAP(true);
 ATOM_MAP(false);
 
+ATOM_MAP(ready);
+
+ATOM_MAP(erlfdb_future);
+ATOM_MAP(erlfdb_cluster);
+ATOM_MAP(erlfdb_database);
+ATOM_MAP(erlfdb_transaction);
+
 
 // Network Options
 ATOM_MAP(local_address);

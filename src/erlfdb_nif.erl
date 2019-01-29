@@ -23,14 +23,17 @@
     future_cancel/1,
     future_is_ready/1,
     future_get_error/1,
-    future_get_version/1
+    future_get/1,
+
+    create_cluster/0,
+    create_cluster/1
 ]).
 
 
 -define(DEFAULT_API_VERSION, 600).
 
 
--type future() :: {erlfdb_future, reference()}.
+-type future() :: {erlfdb_future, reference(), reference()}.
 -type erlfdb_error() :: {error, Code::integer(), Description::binary()}.
 
 ohai() ->
@@ -57,9 +60,32 @@ future_get_error(Future) ->
     erlfdb_future_get_error(Future).
 
 
--spec future_get_version(future()) -> integer() | erlfdb_error().
-future_get_version(Future) ->
-    erlfdb_future_get_version(Future).
+-spec future_get(future()) -> stuff.
+future_get(Future) ->
+    erlfdb_future_get(Future).
+
+
+-spec create_cluster() -> future().
+create_cluster() ->
+    create_cluster(<<0>>).
+
+
+-spec create_cluster(ClusterFilePath::binary()) -> future().
+create_cluster(<<>>) ->
+    create_cluster(<<0>>);
+
+create_cluster(ClusterFilePath) ->
+    Size = size(ClusterFilePath) - 1,
+    % Make sure we pass a NULL-terminated string
+    % to FoundationDB
+    NifPath = case ClusterFilePath of
+        <<_:Size/binary, 0>> ->
+            ClusterFilePath;
+        _ ->
+            <<ClusterFilePath/binary, 0>>
+    end,
+    erlfdb_create_cluster(NifPath).
+
 
 
 init() ->
@@ -113,16 +139,14 @@ erlfdb_setup_network() -> ?NOT_LOADED.
 erlfdb_future_cancel(_Future) -> ?NOT_LOADED.
 erlfdb_future_is_ready(_Future) -> ?NOT_LOADED.
 erlfdb_future_get_error(_Future) -> ?NOT_LOADED.
-erlfdb_future_get_version(_Future) -> ?NOT_LOADED.
-%% erlfdb_future_get(_Future) -> ?NOT_LOADED.
+erlfdb_future_get(_Future) -> ?NOT_LOADED.
 
-%% % Clusters
-%% erlfdb_create_cluster() -> ?NOT_LOADED.
-%% erlfdb_create_cluster(_ClusterFile) -> ?NOT_LOADED.
+% Clusters
+erlfdb_create_cluster(_ClusterFile) -> ?NOT_LOADED.
 %% erlfdb_cluster_set_option(_Cluster, _ClusterOption) -> ?NOT_LOADED.
 %% erlfdb_cluster_set_option(_Cluster, _ClusterOption, _Value) -> ?NOT_LOADED.
 %% erlfdb_cluster_create_database(_Cluster, _DbName) -> ?NOT_LOADED.
-%%
+
 %% % Databases
 %% erlfdb_database_set_option(_Database, _DatabaseOption) -> ?NOT_LOADED.
 %% erlfdb_database_set_option(_Database, _DatabaseOption, _Value) -> ?NOT_LOADED.

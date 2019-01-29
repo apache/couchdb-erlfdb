@@ -22,9 +22,28 @@ extern ErlNifResourceType* ErlFDBClusterRes;
 extern ErlNifResourceType* ErlFDBDatabaseRes;
 extern ErlNifResourceType* ErlFDBTransactionRes;
 
+
+typedef enum _ErlFDBFutureType
+{
+    ErlFDB_FT_NONE = 0,
+    ErlFDB_FT_VERSION,
+    ErlFDB_FT_KEY,
+    ErlFDB_FT_CLUSTER,
+    ErlFDB_FT_DATABASE,
+    ErlFDB_FT_VALUE,
+    ErlFDB_FT_STRING_ARRAY,
+    ErlFDB_FT_KEYVALUE_ARRAY
+} ErlFDBFutureType;
+
+
 typedef struct _ErlFDBFuture
 {
     FDBFuture* future;
+    ErlFDBFutureType ftype;
+    ErlNifPid pid;
+    ErlNifEnv* pid_env;
+    ErlNifEnv* msg_env;
+    ERL_NIF_TERM msg_ref;
 } ErlFDBFuture;
 
 
