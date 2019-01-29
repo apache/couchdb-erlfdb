@@ -24,5 +24,13 @@
 
 ERL_NIF_TERM erlfdb_erlang_error(ErlNifEnv* env, fdb_error_t err);
 
+int erlfdb_get_boolean(ERL_NIF_TERM term, fdb_bool_t* ret);
+int erlfdb_get_key_selector(
+        ErlNifEnv* env,
+        ERL_NIF_TERM selector,
+        ErlNifBinary* bin,
+        fdb_bool_t* or_equal,
+        int* offset
+    );
 
 #endif // Included util.h

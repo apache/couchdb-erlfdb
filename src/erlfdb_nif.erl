@@ -37,7 +37,10 @@
     transaction_set_read_version/2,
     transaction_get_read_version/1,
     transaction_get/2,
-    transaction_get/3
+    transaction_get/3,
+    transaction_get_key/3,
+    transaction_get_addresses_for_key/2,
+    transaction_get_range/9
 ]).
 
 
@@ -52,14 +55,27 @@
 -type error() :: {error, Code::integer(), Description::binary()}.
 -type option_value() :: no_value | integer() | binary().
 
+-type key_selector() ::
+    {Key::binary(), lt | lteq | gt | gteq} |
+    {Key::binary(), OrEqual::boolean(), Offset::integer()}.
+
 -type future_result() ::
-    {ok, Version::integer()} |
-    {ok, KeyOrValue::binary()} |
     {ok, cluster()} |
     {ok, database()} |
+    {ok, Version::integer()} |
+    {ok, KeyOrValue::binary()} |
     {ok, not_found} |
     {error, invalid_future_type} |
     error().
+
+-type streaming_mode() ::
+    stream_want_all |
+    stream_iterator |
+    stream_exact |
+    stream_small |
+    stream_medium |
+    stream_large |
+    stream_serial.
 
 
 ohai() ->
@@ -163,6 +179,56 @@ transaction_get({erlfdb_transaction, Tx}, Key, Snapshot) ->
     erlfdb_transaction_get(Tx, Key, Snapshot).
 
 
+-spec transaction_get_key(
+        transaction(),
+        KeySelector::key_selector(),
+        Snapshot::boolean()
+    ) -> future() | error().
+transaction_get_key({erlfdb_transaction, Tx}, KeySelector, Snapshot) ->
+    erlfdb_transaction_get_key(Tx, KeySelector, Snapshot).
+
+
+-spec transaction_get_addresses_for_key(transaction(), Key::binary()) ->
+        future() | error().
+transaction_get_addresses_for_key({erlfdb_transaction, Tx}, Key) ->
+    erlfdb_transaction_get_addresses_for_key(Tx, Key).
+
+
+-spec transaction_get_range(
+        transaction(),
+        StartKeySelector::key_selector(),
+        EndKeySelector::key_selector(),
+        Limit::non_neg_integer(),
+        TargetBytes::non_neg_integer(),
+        StreamingMode::streaming_mode(),
+        Iteration::non_neg_integer(),
+        Snapshot::boolean(),
+        Reverse::boolean()
+    ) -> future() | error().
+transaction_get_range(
+        {erlfdb_transaction, Tx},
+        StartKeySelector,
+        EndKeySelector,
+        Limit,
+        TargetBytes,
+        StreamingMode,
+        Iteration,
+        Snapshot,
+        Reverse
+    ) ->
+    erlfdb_transaction_get_range(
+            Tx,
+            StartKeySelector,
+            EndKeySelector,
+            Limit,
+            TargetBytes,
+            StreamingMode,
+            Iteration,
+            Snapshot,
+            Reverse
+        ).
+
+
 init() ->
     PrivDir = case code:priv_dir(?MODULE) of
         {error, _} ->
@@ -227,12 +293,31 @@ erlfdb_database_create_transaction(_Database) -> ?NOT_LOADED.
 
 
 % Transactions
-erlfdb_transaction_set_option(_Transaction, _TransactionOption, _Value) -> ?NOT_LOADED.
+erlfdb_transaction_set_option(
+        _Transaction,
+        _TransactionOption,
+        _Value
+    ) -> ?NOT_LOADED.
 erlfdb_transaction_set_read_version(_Transaction, _Version) -> ?NOT_LOADED.
 erlfdb_transaction_get_read_version(_Transaction) -> ?NOT_LOADED.
 erlfdb_transaction_get(_Transaction, _Key, _Snapshot) -> ?NOT_LOADED.
-%% erlfdb_transaction_get_key(_Transaction, _Key) -> ?NOT_LOADED.
-%% erlfdb_transaction_get_range(_Transaction, _Range, _GetRangeOptions) -> ?NOT_LOADED.
+erlfdb_transaction_get_key(
+        _Transaction,
+        _KeySelector,
+        _Snapshot
+    ) -> ?NOT_LOADED.
+erlfdb_transaction_get_addresses_for_key(_Transaction, _Key) -> ?NOT_LOADED.
+erlfdb_transaction_get_range(
+        _Transaction,
+        _StartKeySelector,
+        _EndKeySelector,
+        _Limit,
+        _TargetBytes,
+        _StreamingMode,
+        _Iteration,
+        _Snapshot,
+        _Reverse
+    ) -> ?NOT_LOADED.
 %% erlfdb_transaction_set(_Transaction, _Key, _Value) -> ?NOT_LOADED.
 %% erlfdb_transaction_clear(_Transaction, _Key) -> ?NOT_LOADED.
 %% erlfdb_transaction_clear_range(_Transaction, _StartKey, _EndKey) -> ?NOT_LOADED.

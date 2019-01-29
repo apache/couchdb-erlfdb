@@ -108,7 +108,10 @@ erlfdb_create_future(ErlNifEnv* env, FDBFuture* future, ErlFDBFutureType ftype)
     f->msg_ref = enif_make_copy(f->msg_env, ref);
 
     err = fdb_future_set_callback(
-            f->future, erlfdb_future_cb, (void*) future);
+            f->future,
+            erlfdb_future_cb,
+            (void*) future
+        );
 
     if(err != 0) {
         enif_release_resource(f);
@@ -390,8 +393,13 @@ erlfdb_setup_network(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         return erlfdb_erlang_error(env, err);
     }
 
-    if(enif_thread_create("fdb:network_thread", &(st->network_tid),
-            erlfdb_network_thread, (void*) st, NULL) != 0) {
+    if(enif_thread_create(
+            "fdb:network_thread",
+            &(st->network_tid),
+            erlfdb_network_thread,
+            (void*) st,
+            NULL
+        ) != 0) {
         return enif_make_badarg(env);
     }
 
@@ -565,7 +573,10 @@ erlfdb_cluster_set_option(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
 static ERL_NIF_TERM
 erlfdb_cluster_create_database(
-        ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+        ErlNifEnv* env,
+        int argc,
+        const ERL_NIF_TERM argv[]
+    )
 {
     ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
     ErlFDBCluster* c;
@@ -596,7 +607,10 @@ erlfdb_cluster_create_database(
     }
 
     future = fdb_cluster_create_database(
-            c->cluster, (const uint8_t*) bin.data, bin.size);
+            c->cluster,
+            (const uint8_t*) bin.data,
+            bin.size
+        );
 
     return erlfdb_create_future(env, future, ErlFDB_FT_DATABASE);
 }
@@ -660,7 +674,10 @@ erlfdb_transaction_set_option(
 
 static ERL_NIF_TERM
 erlfdb_transaction_set_read_version(
-        ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+        ErlNifEnv* env,
+        int argc,
+        const ERL_NIF_TERM argv[]
+    )
 {
     ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
     ErlFDBTransaction* t;
@@ -695,7 +712,10 @@ erlfdb_transaction_set_read_version(
 
 static ERL_NIF_TERM
 erlfdb_transaction_get_read_version(
-        ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+        ErlNifEnv* env,
+        int argc,
+        const ERL_NIF_TERM argv[]
+    )
 {
     ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
     ErlFDBTransaction* t;
@@ -723,7 +743,10 @@ erlfdb_transaction_get_read_version(
 
 static ERL_NIF_TERM
 erlfdb_transaction_get(
-        ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+        ErlNifEnv* env,
+        int argc,
+        const ERL_NIF_TERM argv[]
+    )
 {
     ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
     ErlFDBTransaction* t;
@@ -749,19 +772,219 @@ erlfdb_transaction_get(
         return enif_make_badarg(env);
     }
 
-    if(enif_compare(argv[2], ATOM_true)) {
-        snapshot = 1;
-    } else if(enif_compare(argv[2], ATOM_false)) {
-        snapshot = 0;
-    } else {
+    if(!erlfdb_get_boolean(argv[2], &snapshot)) {
         return enif_make_badarg(env);
     }
 
     future = fdb_transaction_get(
-            t->transaction, (uint8_t*) key.data, key.size, snapshot);
+            t->transaction,
+            (uint8_t*) key.data,
+            key.size,
+            snapshot
+        );
 
-    return erlfdb_create_future(env, future, ErlFDB_FT_VERSION);
+    return erlfdb_create_future(env, future, ErlFDB_FT_VALUE);
 }
+
+
+static ERL_NIF_TERM
+erlfdb_transaction_get_key(
+        ErlNifEnv* env,
+        int argc,
+        const ERL_NIF_TERM argv[]
+    )
+{
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    ErlFDBTransaction* t;
+    ErlNifBinary key;
+    fdb_bool_t or_equal;
+    int offset;
+    fdb_bool_t snapshot;
+    FDBFuture* future;
+    void* res;
+
+    if(st->lib_state != ErlFDB_CONNECTED) {
+        return enif_make_badarg(env);
+    }
+
+    if(argc != 3) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_resource(env, argv[0], ErlFDBTransactionRes, &res)) {
+        return enif_make_badarg(env);
+    }
+    t = (ErlFDBTransaction*) res;
+
+    if(!erlfdb_get_key_selector(env, argv[1], &key, &or_equal, &offset)) {
+        return enif_make_badarg(env);
+    }
+
+    if(!erlfdb_get_boolean(argv[2], &snapshot)) {
+        return enif_make_badarg(env);
+    }
+
+    future = fdb_transaction_get_key(
+            t->transaction,
+            (uint8_t*) key.data,
+            key.size,
+            or_equal,
+            offset,
+            snapshot
+        );
+
+    return erlfdb_create_future(env, future, ErlFDB_FT_KEY);
+}
+
+
+static ERL_NIF_TERM
+erlfdb_transaction_get_addresses_for_key(
+        ErlNifEnv* env,
+        int argc,
+        const ERL_NIF_TERM argv[]
+    )
+{
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    ErlFDBTransaction* t;
+    ErlNifBinary key;
+    FDBFuture* future;
+    void* res;
+
+    if(st->lib_state != ErlFDB_CONNECTED) {
+        return enif_make_badarg(env);
+    }
+
+    if(argc != 2) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_resource(env, argv[0], ErlFDBTransactionRes, &res)) {
+        return enif_make_badarg(env);
+    }
+    t = (ErlFDBTransaction*) res;
+
+    if(!enif_inspect_binary(env, argv[1], &key)) {
+        return enif_make_badarg(env);
+    }
+
+    future = fdb_transaction_get_addresses_for_key(
+            t->transaction,
+            (uint8_t*) key.data,
+            key.size
+        );
+
+    return erlfdb_create_future(env, future, ErlFDB_FT_STRING_ARRAY);
+}
+
+static ERL_NIF_TERM
+erlfdb_transaction_get_range(
+        ErlNifEnv* env,
+        int argc,
+        const ERL_NIF_TERM argv[]
+    )
+{
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    ErlFDBTransaction* t;
+
+    ErlNifBinary skey;
+    fdb_bool_t sor_equal;
+    int soffset;
+
+    ErlNifBinary ekey;
+    fdb_bool_t eor_equal;
+    int eoffset;
+
+    int limit;
+    int target_bytes;
+    FDBStreamingMode mode;
+    int iteration;
+    fdb_bool_t snapshot;
+    fdb_bool_t reverse;
+
+    FDBFuture* future;
+    void* res;
+
+    if(st->lib_state != ErlFDB_CONNECTED) {
+        return enif_make_badarg(env);
+    }
+
+    if(argc != 9) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_resource(env, argv[0], ErlFDBTransactionRes, &res)) {
+        return enif_make_badarg(env);
+    }
+    t = (ErlFDBTransaction*) res;
+
+
+    if(!erlfdb_get_key_selector(env, argv[1], &skey, &sor_equal, &soffset)) {
+        return enif_make_badarg(env);
+    }
+
+    if(!erlfdb_get_key_selector(env, argv[2], &ekey, &eor_equal, &eoffset)) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_int(env, argv[3], &limit)) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_int(env, argv[4], &target_bytes)) {
+        return enif_make_badarg(env);
+    }
+
+    if(enif_compare(argv[5], ATOM_stream_want_all) == 0) {
+        mode = FDB_STREAMING_MODE_WANT_ALL;
+    } else if(enif_compare(argv[5], ATOM_stream_iterator) == 0) {
+        mode = FDB_STREAMING_MODE_ITERATOR;
+    } else if(enif_compare(argv[5], ATOM_stream_exact) == 0) {
+        mode = FDB_STREAMING_MODE_EXACT;
+    } else if(enif_compare(argv[5], ATOM_stream_small) == 0) {
+        mode = FDB_STREAMING_MODE_SMALL;
+    } else if(enif_compare(argv[5], ATOM_stream_medium) == 0) {
+        mode = FDB_STREAMING_MODE_MEDIUM;
+    } else if(enif_compare(argv[5], ATOM_stream_large) == 0) {
+        mode = FDB_STREAMING_MODE_LARGE;
+    } else if(enif_compare(argv[5], ATOM_stream_serial) == 0) {
+        mode = FDB_STREAMING_MODE_SERIAL;
+    } else {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_int(env, argv[6], &iteration)) {
+        return enif_make_badarg(env);
+    }
+
+    if(!erlfdb_get_boolean(argv[7], &snapshot)) {
+        return enif_make_badarg(env);
+    }
+
+    if(!erlfdb_get_boolean(argv[8], &reverse)) {
+        return enif_make_badarg(env);
+    }
+
+    future = fdb_transaction_get_range(
+            t->transaction,
+            (uint8_t*) skey.data,
+            skey.size,
+            sor_equal,
+            soffset,
+            (uint8_t*) ekey.data,
+            ekey.size,
+            eor_equal,
+            eoffset,
+            limit,
+            target_bytes,
+            mode,
+            iteration,
+            snapshot,
+            reverse
+        );
+
+    return erlfdb_create_future(env, future, ErlFDB_FT_KEYVALUE_ARRAY);
+}
+
 
 
 #define NIF_FUNC(name, arity) {#name, arity, name}
@@ -790,7 +1013,10 @@ static ErlNifFunc funcs[] =
     NIF_FUNC(erlfdb_transaction_set_option, 3),
     NIF_FUNC(erlfdb_transaction_set_read_version, 2),
     NIF_FUNC(erlfdb_transaction_get_read_version, 1),
-    NIF_FUNC(erlfdb_transaction_get, 3)
+    NIF_FUNC(erlfdb_transaction_get, 3),
+    NIF_FUNC(erlfdb_transaction_get_key, 3),
+    NIF_FUNC(erlfdb_transaction_get_addresses_for_key, 2),
+    NIF_FUNC(erlfdb_transaction_get_range, 9)
 };
 #undef NIF_FUNC
 

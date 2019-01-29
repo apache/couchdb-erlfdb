@@ -19,6 +19,11 @@ ATOM_MAP(false);
 
 ATOM_MAP(ready);
 
+ATOM_MAP(lt);
+ATOM_MAP(lteq);
+ATOM_MAP(gt);
+ATOM_MAP(gteq);
+
 ATOM_MAP(not_found);
 
 ATOM_MAP(erlfdb_future);
@@ -96,3 +101,12 @@ ATOM_MAP(lock_aware);
 ATOM_MAP(used_during_commit_protection_disable);
 ATOM_MAP(read_lock_aware);
 
+
+// Streaming mode
+ATOM_MAP(stream_want_all);
+ATOM_MAP(stream_iterator);
+ATOM_MAP(stream_exact);
+ATOM_MAP(stream_small);
+ATOM_MAP(stream_medium);
+ATOM_MAP(stream_large);
+ATOM_MAP(stream_serial);

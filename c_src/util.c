@@ -28,3 +28,81 @@ erlfdb_erlang_error(ErlNifEnv* env, fdb_error_t err)
 
     return T3(env, ATOM_error, enif_make_int(env, err), binterm);
 }
+
+
+int
+erlfdb_get_boolean(ERL_NIF_TERM term, fdb_bool_t* ret)
+{
+    if(enif_compare(term, ATOM_true) == 0) {
+        *ret = 1;
+    } else if(enif_compare(term, ATOM_false) == 0) {
+        *ret = 0;
+    } else {
+        return 0;
+    }
+
+    return 1;
+}
+
+
+int
+erlfdb_get_key_selector(
+        ErlNifEnv* env,
+        ERL_NIF_TERM selector,
+        ErlNifBinary* bin,
+        fdb_bool_t* or_equal,
+        int* offset
+    )
+{
+    const ERL_NIF_TERM* tuple;
+    int arity;
+
+    if(!enif_get_tuple(env, selector, &arity, &tuple)) {
+        return 0;
+    }
+
+    if(arity != 2 && arity != 3) {
+        return 0;
+    }
+
+    if(!enif_inspect_binary(env, tuple[0], bin)) {
+        return 0;
+    }
+
+    if(arity == 2) {
+        if(enif_compare(tuple[1], ATOM_lt) == 0) {
+            *or_equal = 0;
+            *offset = 0;
+        } else if(enif_compare(tuple[1], ATOM_lteq) == 0) {
+            *or_equal = 1;
+            *offset = 0;
+        } else if(enif_compare(tuple[1], ATOM_gt) == 0) {
+            *or_equal = 1;
+            *offset = 1;
+        } else if(enif_compare(tuple[1], ATOM_gteq) == 0) {
+            *or_equal = 0;
+            *offset = 1;
+        } else {
+            return 0;
+        }
+    } else if(arity == 3) {
+        if(enif_compare(tuple[1], ATOM_true) == 0) {
+            *or_equal = 1;
+        } else if(enif_compare(tuple[1], ATOM_false) == 0) {
+            *or_equal = 0;
+        } else {
+            return 0;
+        }
+
+        if(!enif_get_int(env, tuple[2], offset)) {
+            return 0;
+        }
+    } else {
+        // Technically this is dead code, but keeping
+        // it here in case the arity conditional earlier
+        // in this function is ever changed.
+        return 0;
+    }
+
+    return 1;
+}
