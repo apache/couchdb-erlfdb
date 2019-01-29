@@ -40,7 +40,11 @@
     transaction_get/3,
     transaction_get_key/3,
     transaction_get_addresses_for_key/2,
-    transaction_get_range/9
+    transaction_get_range/9,
+    transaction_set/3,
+    transaction_clear/2,
+    transaction_clear_range/3,
+    transaction_atomic_op/4
 ]).
 
 
@@ -77,6 +81,21 @@
     stream_large |
     stream_serial.
 
+
+-type atomic_mode() ::
+    add |
+    bit_and |
+    bit_or |
+    bit_xor |
+    append_if_fits |
+    max |
+    min |
+    byte_min |
+    byte_max |
+    set_versionstamped_key |
+    set_versionstamped_value.
+
+-type atomic_operand() :: integer() | binary().
 
 ohai() ->
     foo.
@@ -229,6 +248,39 @@ transaction_get_range(
         ).
 
 
+-spec transaction_set(transaction(), Key::binary(), Val::binary()) -> ok.
+transaction_set({erlfdb_transaction, Tx}, Key, Val) ->
+    erlfdb_transaction_set(Tx, Key, Val).
+
+
+-spec transaction_clear(transaction(), Key::binary()) -> ok.
+transaction_clear({erlfdb_transaction, Tx}, Key) ->
+    erlfdb_transaction_clear(Tx, Key).
+
+
+-spec transaction_clear_range(
+        transaction(),
+        StartKey::binary(),
+        EndKey::binary()
+    ) -> ok.
+transaction_clear_range({erlfdb_transaction, Tx}, StartKey, EndKey) ->
+    erlfdb_transaction_clear_range(Tx, StartKey, EndKey).
+
+
+-spec transaction_atomic_op(
+        transaction(),
+        Key::binary(),
+        Mode::atomic_mode(),
+        Operand::atomic_operand()
+    ) -> ok.
+transaction_atomic_op({erlfdb_transaction, Tx}, Key, Mode, ErlOperand) ->
+    BinOperand = case ErlOperand of
+        B when is_binary(B) -> B;
+        I when is_integer(I) -> <<I:8/little-signed-integer-unit:8>>
+    end,
+    erlfdb_transaction_atomic_op(Tx, Key, Mode, BinOperand).
+
+
 init() ->
     PrivDir = case code:priv_dir(?MODULE) of
         {error, _} ->
@@ -318,15 +370,20 @@ erlfdb_transaction_get_range(
         _Snapshot,
         _Reverse
     ) -> ?NOT_LOADED.
-%% erlfdb_transaction_set(_Transaction, _Key, _Value) -> ?NOT_LOADED.
-%% erlfdb_transaction_clear(_Transaction, _Key) -> ?NOT_LOADED.
-%% erlfdb_transaction_clear_range(_Transaction, _StartKey, _EndKey) -> ?NOT_LOADED.
-%% erlfdb_transaction_atomic_op(_Transaction, _Mutation, _Key, _Value) -> ?NOT_LOADED.
+erlfdb_transaction_set(_Transaction, _Key, _Value) -> ?NOT_LOADED.
+erlfdb_transaction_clear(_Transaction, _Key) -> ?NOT_LOADED.
+erlfdb_transaction_clear_range(_Transaction, _StartKey, _EndKey) -> ?NOT_LOADED.
+erlfdb_transaction_atomic_op(
+        _Transaction,
+        _Mutation,
+        _Key,
+        _Value
+    ) -> ?NOT_LOADED.
 %% erlfdb_transaction_commit(_Transaction) -> ?NOT_LOADED.
 %% erlfdb_transaction_get_committed_version(_Transaction) -> ?NOT_LOADED.
 %% erlfdb_transaction_get_versionstamp(_Transaction) -> ?NOT_LOADED.
 %% erlfdb_transaction_watch(_Transaction, _Key) -> ?NOT_LOADED.
-%% erlfdb_transaction_on_eror(_Transaction, _Error) -> ?NOT_LOADED.
+%% erlfdb_transaction_on_error(_Transaction, _Error) -> ?NOT_LOADED.
 %% erlfdb_transaction_reset(_Transaction) -> ?NOT_LOADED.
 %% erlfdb_transaction_cancel(_Transaction) -> ?NOT_LOADED.
 %% erlfdb_transaction_add_conflict_range(_Transaction, _StartKey, _EndKey, _Type) -> ?NOT_LOADED.

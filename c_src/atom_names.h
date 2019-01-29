@@ -110,3 +110,17 @@ ATOM_MAP(stream_small);
 ATOM_MAP(stream_medium);
 ATOM_MAP(stream_large);
 ATOM_MAP(stream_serial);
+
+
+// Atomic Mutation Types
+ATOM_MAP(add);
+ATOM_MAP(bit_and);
+ATOM_MAP(bit_or);
+ATOM_MAP(bit_xor);
+ATOM_MAP(append_if_fits);
+ATOM_MAP(max);
+ATOM_MAP(min);
+ATOM_MAP(byte_min);
+ATOM_MAP(byte_max);
+ATOM_MAP(set_versionstamped_key);
+ATOM_MAP(set_versionstamped_value);
