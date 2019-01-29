@@ -16,12 +16,22 @@
 -on_load(init/0).
 
 -export([
-    ohai/0
+    ohai/0,
+
+    get_max_api_version/0
 ]).
+
+
+-define(DEFAULT_API_VERSION, 600).
 
 
 ohai() ->
     foo.
+
+
+-spec get_max_api_version() -> {ok, integer()}.
+get_max_api_version() ->
+    erlfdb_get_max_api_version().
 
 
 init() ->
@@ -35,22 +45,42 @@ init() ->
     end,
     Status = erlang:load_nif(filename:join(PrivDir, "erlfdb_nif"), 0),
     if Status /= ok -> Status; true ->
-        {ok, Vsn} = erlfdb_get_max_api_version(),
-        erlfdb_select_api_version(Vsn)
+        true = erlfdb_can_initialize(),
+
+        Vsn = case application:get_env(erlfdb, api_version) of
+            {ok, V} -> V;
+            undefined -> ?DEFAULT_API_VERSION
+        end,
+        ok = erlfdb_select_api_version(Vsn),
+
+        Opts = case application:get_env(erlfdb, network_options) of
+            {ok, O} when is_list(O) -> O;
+            undefined -> []
+        end,
+
+        lists:foreach(fun({Name, Value}) ->
+            ok = erlfdb_network_set_option(Name, Value)
+        end, Opts),
+
+        erlfdb_setup_network()
     end.
 
 
 -define(NOT_LOADED, erlang:nif_error({erlfdb_nif_not_loaded, ?FILE, ?LINE})).
 
 
+% Sentinel Check
+erlfdb_can_initialize() -> ?NOT_LOADED.
+
+
 % Versioning
 erlfdb_get_max_api_version() -> ?NOT_LOADED.
 erlfdb_select_api_version(_Version) -> ?NOT_LOADED.
 
-%% % Networking Setup
-%% erlfdb_network_set_option(_NetworkOption, _Value) -> ?NOT_LOADED.
-%% erlfdb_setup_network() -> ?NOT_LOADED.
-%%
+% Networking Setup
+erlfdb_network_set_option(_NetworkOption, _Value) -> ?NOT_LOADED.
+erlfdb_setup_network() -> ?NOT_LOADED.
+
 %% % Futures
 %% erlfdb_future_cancel(_Future) -> ?NOT_LOADED.
 %% erlfdb_future_is_ready(_Future) -> ?NOT_LOADED.

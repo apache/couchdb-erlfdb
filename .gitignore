@@ -2,8 +2,10 @@
 .eunit/
 .rebar/
 
+compile_commands.json
 erln8.config
 
+c_src/*.d
 c_src/*.o
 ebin/
 priv/
