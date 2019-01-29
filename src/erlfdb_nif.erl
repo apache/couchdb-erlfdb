@@ -18,12 +18,20 @@
 -export([
     ohai/0,
 
-    get_max_api_version/0
+    get_max_api_version/0,
+
+    future_cancel/1,
+    future_is_ready/1,
+    future_get_error/1,
+    future_get_version/1
 ]).
 
 
 -define(DEFAULT_API_VERSION, 600).
 
+
+-type future() :: {erlfdb_future, reference()}.
+-type erlfdb_error() :: {error, Code::integer(), Description::binary()}.
 
 ohai() ->
     foo.
@@ -32,6 +40,26 @@ ohai() ->
 -spec get_max_api_version() -> {ok, integer()}.
 get_max_api_version() ->
     erlfdb_get_max_api_version().
+
+
+-spec future_cancel(future()) -> ok.
+future_cancel(Future) ->
+    erlfdb_future_cancel(Future).
+
+
+-spec future_is_ready(future()) -> boolean().
+future_is_ready(Future) ->
+    erlfdb_future_is_ready(Future).
+
+
+-spec future_get_error(future()) -> erlfdb_error().
+future_get_error(Future) ->
+    erlfdb_future_get_error(Future).
+
+
+-spec future_get_version(future()) -> integer() | erlfdb_error().
+future_get_version(Future) ->
+    erlfdb_future_get_version(Future).
 
 
 init() ->
@@ -81,13 +109,13 @@ erlfdb_select_api_version(_Version) -> ?NOT_LOADED.
 erlfdb_network_set_option(_NetworkOption, _Value) -> ?NOT_LOADED.
 erlfdb_setup_network() -> ?NOT_LOADED.
 
-%% % Futures
-%% erlfdb_future_cancel(_Future) -> ?NOT_LOADED.
-%% erlfdb_future_is_ready(_Future) -> ?NOT_LOADED.
-%% erlfdb_future_get_error(_Future) -> ?NOT_LOADED.
-%% erlfdb_future_get_version(_Future) -> ?NOT_LOADED.
+% Futures
+erlfdb_future_cancel(_Future) -> ?NOT_LOADED.
+erlfdb_future_is_ready(_Future) -> ?NOT_LOADED.
+erlfdb_future_get_error(_Future) -> ?NOT_LOADED.
+erlfdb_future_get_version(_Future) -> ?NOT_LOADED.
 %% erlfdb_future_get(_Future) -> ?NOT_LOADED.
-%%
+
 %% % Clusters
 %% erlfdb_create_cluster() -> ?NOT_LOADED.
 %% erlfdb_create_cluster(_ClusterFile) -> ?NOT_LOADED.

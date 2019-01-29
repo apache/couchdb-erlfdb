@@ -246,6 +246,120 @@ erlfdb_setup_network(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 }
 
 
+static ERL_NIF_TERM
+erlfdb_future_cancel(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    ErlFDBFuture* future;
+    void* res;
+
+    if(st->lib_state != ErlFDB_CONNECTED) {
+        return enif_make_badarg(env);
+    }
+
+    if(argc != 1) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_resource(env, argv[0], ErlFDBFutureRes, &res)) {
+        return enif_make_badarg(env);
+    }
+    future = (ErlFDBFuture*) res;
+
+    fdb_future_cancel(future->future);
+
+    return ATOM_ok;
+}
+
+
+static ERL_NIF_TERM
+erlfdb_future_is_ready(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    ErlFDBFuture* future;
+    void* res;
+
+    if(st->lib_state != ErlFDB_CONNECTED) {
+        return enif_make_badarg(env);
+    }
+
+    if(argc != 1) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_resource(env, argv[0], ErlFDBFutureRes, &res)) {
+        return enif_make_badarg(env);
+    }
+    future = (ErlFDBFuture*) res;
+
+    if(fdb_future_is_ready(future->future)) {
+        return ATOM_true;
+    } else {
+        return ATOM_false;
+    }
+}
+
+
+static ERL_NIF_TERM
+erlfdb_future_get_error(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    ErlFDBFuture* future;
+    fdb_error_t err;
+    void* res;
+
+    if(st->lib_state != ErlFDB_CONNECTED) {
+        return enif_make_badarg(env);
+    }
+
+    if(argc != 1) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_resource(env, argv[0], ErlFDBFutureRes, &res)) {
+        return enif_make_badarg(env);
+    }
+    future = (ErlFDBFuture*) res;
+
+    err = fdb_future_get_error(future->future);
+
+    return erlfdb_erlang_error(env, err);
+}
+
+
+static ERL_NIF_TERM
+erlfdb_future_get_version(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    ErlFDBFuture* future;
+    fdb_error_t err;
+    int64_t vsn;
+    ErlNifSInt64 erl_vsn;
+    void* res;
+
+    if(st->lib_state != ErlFDB_CONNECTED) {
+        return enif_make_badarg(env);
+    }
+
+    if(argc != 1) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_resource(env, argv[0], ErlFDBFutureRes, &res)) {
+        return enif_make_badarg(env);
+    }
+    future = (ErlFDBFuture*) res;
+
+    err = fdb_future_get_version(future->future, &vsn);
+    if(err != 0) {
+        return erlfdb_erlang_error(env, err);
+    }
+
+    erl_vsn = (ErlNifSInt64) vsn;
+    return enif_make_int(env, erl_vsn);
+}
+
+
 #define NIF_FUNC(name, arity) {#name, arity, name}
 static ErlNifFunc funcs[] =
 {
@@ -255,7 +369,12 @@ static ErlNifFunc funcs[] =
     NIF_FUNC(erlfdb_select_api_version, 1),
 
     NIF_FUNC(erlfdb_network_set_option, 2),
-    NIF_FUNC(erlfdb_setup_network, 0)
+    NIF_FUNC(erlfdb_setup_network, 0),
+
+    NIF_FUNC(erlfdb_future_cancel, 1),
+    NIF_FUNC(erlfdb_future_is_ready, 1),
+    NIF_FUNC(erlfdb_future_get_error, 1),
+    NIF_FUNC(erlfdb_future_get_version, 1)
 };
 #undef NIF_FUNC
 
