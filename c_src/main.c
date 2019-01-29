@@ -29,14 +29,61 @@
 const char* SENTINEL = "faaffadf46e64b87bdd0fedbddd97b1a";
 
 
+typedef enum _ErlFDBLibState
+{
+    ErlFDB_STATE_ERROR = 0,
+    ErlFDB_LOADED,
+    ErlFDB_API_SELECTED,
+    ErlFDB_NETWORK_STARTING,
+    ErlFDB_CONNECTED,
+} ErlFDBLibState;
+
+
+typedef struct _ErlFDBSt
+{
+    ErlFDBLibState lib_state;
+    ErlNifTid network_tid;
+    ErlNifMutex* lock;
+    ErlNifCond* cond;
+} ErlFDBSt;
+
+
+static void*
+erlfdb_network_thread(void* arg)
+{
+    ErlFDBSt* st = (ErlFDBSt*) arg;
+    fdb_error_t* err = enif_alloc(sizeof(fdb_error_t));
+
+    enif_mutex_lock(st->lock);
+
+    st->lib_state = ErlFDB_NETWORK_STARTING;
+
+    enif_cond_signal(st->cond);
+    enif_mutex_unlock(st->lock);
+
+    *err = fdb_run_network();
+
+    return (void*) err;
+}
+
+
+
 static int
 erlfdb_load(ErlNifEnv* env, void** priv, ERL_NIF_TERM num_schedulers)
 {
+    ErlFDBSt* st = (ErlFDBSt*) enif_alloc(sizeof(ErlFDBSt));
+
     erlfdb_init_atoms(env);
 
     if(!erlfdb_init_resources(env)) {
         return 1;
     }
+
+    st->lock = enif_mutex_create("fdb:st_lock");
+    st->cond = enif_cond_create("fdb:st_cond");
+
+    st->lib_state = ErlFDB_LOADED;
+    *priv = st;
 
     return 0;
 }
@@ -45,7 +92,33 @@ erlfdb_load(ErlNifEnv* env, void** priv, ERL_NIF_TERM num_schedulers)
 static void
 erlfdb_unload(ErlNifEnv* env, void* priv)
 {
-    // stop network and join
+    ErlFDBSt* st = (ErlFDBSt*) priv;
+    ErlFDBLibState lib_state = ErlFDB_STATE_ERROR;
+    fdb_error_t err;
+    void* tmp;
+    fdb_error_t* net_err;
+    int nif_err;
+
+    enif_mutex_lock(st->lock);
+    lib_state = st->lib_state;
+    enif_mutex_unlock(st->lock);
+
+    if(lib_state == ErlFDB_CONNECTED) {
+        err = fdb_stop_network();
+        assert(err == 0 && "Error disconnecting fdb client");
+
+        nif_err = enif_thread_join(st->network_tid, &tmp);
+        assert(nif_err == 0 && "Error joining network thread");
+
+        net_err = (fdb_error_t*) tmp;
+        assert(*net_err == 0 && "Error running network thread");
+        enif_free(tmp);
+    }
+
+    enif_mutex_destroy(st->lock);
+    enif_cond_destroy(st->cond);
+    enif_free(priv);
+
     return;
 }
 
@@ -53,7 +126,12 @@ erlfdb_unload(ErlNifEnv* env, void* priv)
 static ERL_NIF_TERM
 erlfdb_can_initialize(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
     ERL_NIF_TERM atom;
+
+    if(st->lib_state != ErlFDB_LOADED) {
+        return enif_make_badarg(env);
+    }
 
     if(argc != 0) {
         return enif_make_badarg(env);
@@ -85,8 +163,13 @@ erlfdb_get_max_api_version(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 static ERL_NIF_TERM
 erlfdb_select_api_version(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
     int vsn;
     fdb_error_t err;
+
+    if(st->lib_state != ErlFDB_LOADED) {
+        return enif_make_badarg(env);
+    }
 
     if(argc != 1) {
         return enif_make_badarg(env);
@@ -102,6 +185,8 @@ erlfdb_select_api_version(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         return erlfdb_erlang_error(env, err);
     }
 
+    st->lib_state = ErlFDB_API_SELECTED;
+
     return ATOM_ok;
 }
 
@@ -109,6 +194,12 @@ erlfdb_select_api_version(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 static ERL_NIF_TERM
 erlfdb_network_set_option(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+
+    if(st->lib_state != ErlFDB_API_SELECTED) {
+        return enif_make_badarg(env);
+    }
+
     if(argc != 2) {
         return enif_make_badarg(env);
     }
@@ -120,7 +211,12 @@ erlfdb_network_set_option(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 static ERL_NIF_TERM
 erlfdb_setup_network(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
     fdb_error_t err;
+
+    if(st->lib_state != ErlFDB_API_SELECTED) {
+        return enif_make_badarg(env);
+    }
 
     if(argc != 0) {
         return enif_make_badarg(env);
@@ -131,8 +227,20 @@ erlfdb_setup_network(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         return erlfdb_erlang_error(env, err);
     }
 
-    // spawn network thread
-    // wait for network thread
+    if(enif_thread_create("fdb:network_thread", &(st->network_tid),
+            erlfdb_network_thread, (void*) st, NULL) != 0) {
+        return enif_make_badarg(env);
+    }
+
+    enif_mutex_lock(st->lock);
+
+    while(st->lib_state != ErlFDB_NETWORK_STARTING) {
+        enif_cond_wait(st->cond, st->lock);
+    }
+
+    enif_mutex_unlock(st->lock);
+
+    st->lib_state = ErlFDB_CONNECTED;
 
     return ATOM_ok;
 }
