@@ -26,7 +26,12 @@
     future_get/1,
 
     create_cluster/0,
-    create_cluster/1
+    create_cluster/1,
+    cluster_set_option/3,
+    cluster_create_database/2,
+
+    database_set_option/3,
+    database_create_transaction/1
 ]).
 
 
@@ -34,7 +39,22 @@
 
 
 -type future() :: {erlfdb_future, reference(), reference()}.
--type erlfdb_error() :: {error, Code::integer(), Description::binary()}.
+-type cluster() :: {erlfdb_cluster, reference()}.
+-type database() :: {erlfdb_database, reference()}.
+-type transaction() :: {erlfdb_transaction, reference()}.
+
+-type error() :: {error, Code::integer(), Description::binary()}.
+-type option_value() :: integer() | binary().
+
+-type future_result() ::
+    {ok, Version::integer()} |
+    {ok, KeyOrValue::binary()} |
+    {ok, cluster()} |
+    {ok, database()} |
+    {ok, not_found} |
+    {error, invalid_future_type} |
+    error().
+
 
 ohai() ->
     foo.
@@ -55,12 +75,12 @@ future_is_ready(Future) ->
     erlfdb_future_is_ready(Future).
 
 
--spec future_get_error(future()) -> erlfdb_error().
+-spec future_get_error(future()) -> error().
 future_get_error(Future) ->
     erlfdb_future_get_error(Future).
 
 
--spec future_get(future()) -> stuff.
+-spec future_get(future()) -> future_result().
 future_get(Future) ->
     erlfdb_future_get(Future).
 
@@ -86,6 +106,27 @@ create_cluster(ClusterFilePath) ->
     end,
     erlfdb_create_cluster(NifPath).
 
+
+-spec cluster_set_option(cluster(), Opt::atom(), Val::option_value()) -> ok.
+cluster_set_option(Cluster, Opt, Value) ->
+    erlfdb_cluster_set_option(Cluster, Opt, Value).
+
+
+-spec cluster_create_database(cluster(), DbName::binary()) ->
+        {ok, database()} | error().
+cluster_create_database({erlfdb_cluster, Cluster}, DbName) ->
+    erlfdb_cluster_create_database(Cluster, DbName).
+
+
+-spec database_set_option(database(), Opt::atom(), Val::option_value()) -> ok.
+database_set_option(Database, Opt, Val) ->
+    erlfdb_database_set_option(Database, Opt, Val).
+
+
+-spec database_create_transaction(database()) ->
+        {ok, transaction()} | error().
+database_create_transaction(Database) ->
+    erlfdb_database_create_transaction(Database).
 
 
 init() ->
@@ -143,15 +184,14 @@ erlfdb_future_get(_Future) -> ?NOT_LOADED.
 
 % Clusters
 erlfdb_create_cluster(_ClusterFile) -> ?NOT_LOADED.
-%% erlfdb_cluster_set_option(_Cluster, _ClusterOption) -> ?NOT_LOADED.
-%% erlfdb_cluster_set_option(_Cluster, _ClusterOption, _Value) -> ?NOT_LOADED.
-%% erlfdb_cluster_create_database(_Cluster, _DbName) -> ?NOT_LOADED.
+erlfdb_cluster_set_option(_Cluster, _ClusterOption, _Value) -> ?NOT_LOADED.
+erlfdb_cluster_create_database(_Cluster, _DbName) -> ?NOT_LOADED.
 
-%% % Databases
-%% erlfdb_database_set_option(_Database, _DatabaseOption) -> ?NOT_LOADED.
-%% erlfdb_database_set_option(_Database, _DatabaseOption, _Value) -> ?NOT_LOADED.
-%% erlfdb_database_create_transaction(_Database) -> ?NOT_LOADED.
-%%
+% Databases
+erlfdb_database_set_option(_Database, _DatabaseOption, _Value) -> ?NOT_LOADED.
+erlfdb_database_create_transaction(_Database) -> ?NOT_LOADED.
+
+
 %% % Transactions
 %% erlfdb_transaction_set_option(_Transaction, _TransactionOption) -> ?NOT_LOADED.
 %% erlfdb_transaction_set_option(_Transaction, _TransactionOption, _Value) -> ?NOT_LOADED.

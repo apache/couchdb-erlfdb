@@ -78,10 +78,10 @@ erlfdb_init_resources(ErlNifEnv* env)
 void
 erlfdb_future_dtor(ErlNifEnv* env, void* obj)
 {
-    ErlFDBFuture* future = (ErlFDBFuture*) obj;
+    ErlFDBFuture* f = (ErlFDBFuture*) obj;
 
-    if(future->future != NULL) {
-        fdb_future_destroy(future->future);
+    if(f->future != NULL) {
+        fdb_future_destroy(f->future);
     }
 }
 
@@ -89,10 +89,10 @@ erlfdb_future_dtor(ErlNifEnv* env, void* obj)
 void
 erlfdb_cluster_dtor(ErlNifEnv* env, void* obj)
 {
-    ErlFDBCluster* cluster = (ErlFDBCluster*) obj;
+    ErlFDBCluster* c = (ErlFDBCluster*) obj;
 
-    if(cluster->cluster != NULL) {
-        fdb_cluster_destroy(cluster->cluster);
+    if(c->cluster != NULL) {
+        fdb_cluster_destroy(c->cluster);
     }
 }
 
@@ -100,10 +100,10 @@ erlfdb_cluster_dtor(ErlNifEnv* env, void* obj)
 void
 erlfdb_database_dtor(ErlNifEnv* env, void* obj)
 {
-    ErlFDBDatabase* database = (ErlFDBDatabase*) obj;
+    ErlFDBDatabase* d = (ErlFDBDatabase*) obj;
 
-    if(database->db != NULL) {
-        fdb_database_destroy(database->db);
+    if(d->database != NULL) {
+        fdb_database_destroy(d->database);
     }
 }
 
@@ -111,9 +111,9 @@ erlfdb_database_dtor(ErlNifEnv* env, void* obj)
 void
 erlfdb_transaction_dtor(ErlNifEnv* env, void* obj)
 {
-    ErlFDBTransaction* transaction = (ErlFDBTransaction*) obj;
+    ErlFDBTransaction* t = (ErlFDBTransaction*) obj;
 
-    if(transaction->tx != NULL) {
-        fdb_transaction_destroy(transaction->tx);
+    if(t->transaction != NULL) {
+        fdb_transaction_destroy(t->transaction);
     }
 }

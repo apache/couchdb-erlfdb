@@ -19,10 +19,14 @@ ATOM_MAP(false);
 
 ATOM_MAP(ready);
 
+ATOM_MAP(not_found);
+
 ATOM_MAP(erlfdb_future);
 ATOM_MAP(erlfdb_cluster);
 ATOM_MAP(erlfdb_database);
 ATOM_MAP(erlfdb_transaction);
+
+ATOM_MAP(invalid_future_type);
 
 
 // Network Options
@@ -53,3 +57,15 @@ ATOM_MAP(external_client_directory);
 ATOM_MAP(disable_local_client);
 ATOM_MAP(disable_client_statistics_logging);
 ATOM_MAP(enable_slow_task_profiling);
+
+
+// Cluster Options
+// There aren't any...
+
+
+// Database Options
+ATOM_MAP(location_cache_size);
+ATOM_MAP(max_watches);
+ATOM_MAP(machine_id);
+ATOM_MAP(datacenter_id);
+

@@ -55,13 +55,13 @@ typedef struct _ErlFDBCluster
 
 typedef struct _ErlFDBDatabase
 {
-    FDBDatabase* db;
+    FDBDatabase* database;
 } ErlFDBDatabase;
 
 
 typedef struct _ErlFDBTransaction
 {
-    FDBTransaction* tx;
+    FDBTransaction* transaction;
 } ErlFDBTransaction;
 
 
