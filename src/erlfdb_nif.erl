@@ -44,7 +44,9 @@
     transaction_set/3,
     transaction_clear/2,
     transaction_clear_range/3,
-    transaction_atomic_op/4
+    transaction_atomic_op/4,
+    transaction_commit/1,
+    transaction_get_committed_version/1
 ]).
 
 
@@ -281,6 +283,16 @@ transaction_atomic_op({erlfdb_transaction, Tx}, Key, Mode, ErlOperand) ->
     erlfdb_transaction_atomic_op(Tx, Key, Mode, BinOperand).
 
 
+-spec transaction_commit(transaction()) -> future() | error().
+transaction_commit({erlfdb_transaction, Tx}) ->
+    erlfdb_transaction_commit(Tx).
+
+
+-spec transaction_get_committed_version(transaction()) -> integer() | error().
+transaction_get_committed_version({erlfdb_transaction, Tx}) ->
+    erlfdb_transaction_get_committed_version(Tx).
+
+
 init() ->
     PrivDir = case code:priv_dir(?MODULE) of
         {error, _} ->
@@ -379,8 +391,8 @@ erlfdb_transaction_atomic_op(
         _Key,
         _Value
     ) -> ?NOT_LOADED.
-%% erlfdb_transaction_commit(_Transaction) -> ?NOT_LOADED.
-%% erlfdb_transaction_get_committed_version(_Transaction) -> ?NOT_LOADED.
+erlfdb_transaction_commit(_Transaction) -> ?NOT_LOADED.
+erlfdb_transaction_get_committed_version(_Transaction) -> ?NOT_LOADED.
 %% erlfdb_transaction_get_versionstamp(_Transaction) -> ?NOT_LOADED.
 %% erlfdb_transaction_watch(_Transaction, _Key) -> ?NOT_LOADED.
 %% erlfdb_transaction_on_error(_Transaction, _Error) -> ?NOT_LOADED.

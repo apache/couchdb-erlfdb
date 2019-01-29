@@ -1186,6 +1186,73 @@ erlfdb_transaction_atomic_op(
     return ATOM_ok;
 }
 
+static ERL_NIF_TERM
+erlfdb_transaction_commit(
+        ErlNifEnv* env,
+        int argc,
+        const ERL_NIF_TERM argv[]
+    )
+{
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    ErlFDBTransaction* t;
+    FDBFuture* future;
+    void* res;
+
+    if(st->lib_state != ErlFDB_CONNECTED) {
+        return enif_make_badarg(env);
+    }
+
+    if(argc != 4) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_resource(env, argv[0], ErlFDBTransactionRes, &res)) {
+        return enif_make_badarg(env);
+    }
+    t = (ErlFDBTransaction*) res;
+
+    future = fdb_transaction_commit(t->transaction);
+
+    return erlfdb_create_future(env, future, ErlFDB_FT_VALUE);
+}
+
+
+static ERL_NIF_TERM
+erlfdb_transaction_get_committed_version(
+        ErlNifEnv* env,
+        int argc,
+        const ERL_NIF_TERM argv[]
+    )
+{
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    ErlFDBTransaction* t;
+    int64_t fdb_vsn;
+    ErlNifSInt64 erl_vsn;
+    fdb_error_t err;
+    void* res;
+
+    if(st->lib_state != ErlFDB_CONNECTED) {
+        return enif_make_badarg(env);
+    }
+
+    if(argc != 4) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_resource(env, argv[0], ErlFDBTransactionRes, &res)) {
+        return enif_make_badarg(env);
+    }
+    t = (ErlFDBTransaction*) res;
+
+    err = fdb_transaction_get_committed_version(t->transaction, &fdb_vsn);
+    if(err != 0) {
+        return erlfdb_erlang_error(env, err);
+    }
+
+    erl_vsn = fdb_vsn;
+    return enif_make_int64(env, erl_vsn);
+}
+
 
 #define NIF_FUNC(name, arity) {#name, arity, name}
 static ErlNifFunc funcs[] =
@@ -1220,7 +1287,9 @@ static ErlNifFunc funcs[] =
     NIF_FUNC(erlfdb_transaction_set, 3),
     NIF_FUNC(erlfdb_transaction_clear, 2),
     NIF_FUNC(erlfdb_transaction_clear_range, 3),
-    NIF_FUNC(erlfdb_transaction_atomic_op, 4)
+    NIF_FUNC(erlfdb_transaction_atomic_op, 4),
+    NIF_FUNC(erlfdb_transaction_commit, 1),
+    NIF_FUNC(erlfdb_transaction_get_committed_version, 1)
 };
 #undef NIF_FUNC
 
