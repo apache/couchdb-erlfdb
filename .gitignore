@@ -1,0 +1,9 @@
+
+.eunit/
+.rebar/
+
+erln8.config
+
+c_src/*.o
+ebin/
+priv/
