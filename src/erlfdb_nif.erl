@@ -31,7 +31,13 @@
     cluster_create_database/2,
 
     database_set_option/3,
-    database_create_transaction/1
+    database_create_transaction/1,
+
+    transaction_set_option/3,
+    transaction_set_read_version/2,
+    transaction_get_read_version/1,
+    transaction_get/2,
+    transaction_get/3
 ]).
 
 
@@ -44,7 +50,7 @@
 -type transaction() :: {erlfdb_transaction, reference()}.
 
 -type error() :: {error, Code::integer(), Description::binary()}.
--type option_value() :: integer() | binary().
+-type option_value() :: no_value | integer() | binary().
 
 -type future_result() ::
     {ok, Version::integer()} |
@@ -66,23 +72,23 @@ get_max_api_version() ->
 
 
 -spec future_cancel(future()) -> ok.
-future_cancel(Future) ->
-    erlfdb_future_cancel(Future).
+future_cancel({erlfdb, _Ref, Ft}) ->
+    erlfdb_future_cancel(Ft).
 
 
 -spec future_is_ready(future()) -> boolean().
-future_is_ready(Future) ->
-    erlfdb_future_is_ready(Future).
+future_is_ready({elfdb, _Ref, Ft}) ->
+    erlfdb_future_is_ready(Ft).
 
 
 -spec future_get_error(future()) -> error().
-future_get_error(Future) ->
-    erlfdb_future_get_error(Future).
+future_get_error({erlfdb, _Ref, Ft}) ->
+    erlfdb_future_get_error(Ft).
 
 
 -spec future_get(future()) -> future_result().
-future_get(Future) ->
-    erlfdb_future_get(Future).
+future_get({erlfdb, _Ref, Ft}) ->
+    erlfdb_future_get(Ft).
 
 
 -spec create_cluster() -> future().
@@ -107,8 +113,9 @@ create_cluster(ClusterFilePath) ->
     erlfdb_create_cluster(NifPath).
 
 
--spec cluster_set_option(cluster(), Opt::atom(), Val::option_value()) -> ok.
-cluster_set_option(Cluster, Opt, Value) ->
+-spec cluster_set_option(cluster(), Opt::atom(), Val::option_value()) ->
+        ok | error().
+cluster_set_option({erlfdb, Cluster}, Opt, Value) ->
     erlfdb_cluster_set_option(Cluster, Opt, Value).
 
 
@@ -118,15 +125,42 @@ cluster_create_database({erlfdb_cluster, Cluster}, DbName) ->
     erlfdb_cluster_create_database(Cluster, DbName).
 
 
--spec database_set_option(database(), Opt::atom(), Val::option_value()) -> ok.
-database_set_option(Database, Opt, Val) ->
-    erlfdb_database_set_option(Database, Opt, Val).
+-spec database_set_option(database(), Opt::atom(), Val::option_value()) ->
+        ok | error().
+database_set_option({erlfdb, Db}, Opt, Val) ->
+    erlfdb_database_set_option(Db, Opt, Val).
 
 
 -spec database_create_transaction(database()) ->
         {ok, transaction()} | error().
-database_create_transaction(Database) ->
-    erlfdb_database_create_transaction(Database).
+database_create_transaction({erlfdb_database, Db}) ->
+    erlfdb_database_create_transaction(Db).
+
+
+-spec transaction_set_option(transaction(), Opt::atom(), Val::option_value()) ->
+        ok | error().
+transaction_set_option({erlfdb_transaction, Tx}, Opt, Val) ->
+    erlfdb_transaction_set_option(Tx, Opt, Val).
+
+
+-spec transaction_set_read_version(transaction(), Version::integer()) -> ok.
+transaction_set_read_version({erlfdb_transaction, Tx}, Version) ->
+    erlfdb_transaction_set_read_version(Tx, Version).
+
+
+-spec transaction_get_read_version(transaction()) -> future() | error().
+transaction_get_read_version({erlfdb_transaction, Tx}) ->
+    erlfdb_transaction_get_read_version(Tx).
+
+
+-spec transaction_get(transaction(), Key::binary()) -> future() | error().
+transaction_get({erlfdb_transaction, Tx}, Key) ->
+    erlfdb_transaction_get(Tx, Key, false).
+
+-spec transaction_get(transaction(), Key::binary(), Snapshot::boolean()) ->
+        future() | error().
+transaction_get({erlfdb_transaction, Tx}, Key, Snapshot) ->
+    erlfdb_transaction_get(Tx, Key, Snapshot).
 
 
 init() ->
@@ -192,13 +226,11 @@ erlfdb_database_set_option(_Database, _DatabaseOption, _Value) -> ?NOT_LOADED.
 erlfdb_database_create_transaction(_Database) -> ?NOT_LOADED.
 
 
-%% % Transactions
-%% erlfdb_transaction_set_option(_Transaction, _TransactionOption) -> ?NOT_LOADED.
-%% erlfdb_transaction_set_option(_Transaction, _TransactionOption, _Value) -> ?NOT_LOADED.
-%% erlfdb_transaction_set_read_version(_Transaction, _Version) -> ?NOT_LOADED.
-%% erlfdb_transaction_get_read_version(_Transaction) -> ?NOT_LOADED.
-%% erlfdb_transaction_get(_Transaction, _Key) -> ?NOT_LOADED.
-%% erlfdb_transaction_get(_Transaction, _Key, _Snapshot) -> ?NOT_LOADED.
+% Transactions
+erlfdb_transaction_set_option(_Transaction, _TransactionOption, _Value) -> ?NOT_LOADED.
+erlfdb_transaction_set_read_version(_Transaction, _Version) -> ?NOT_LOADED.
+erlfdb_transaction_get_read_version(_Transaction) -> ?NOT_LOADED.
+erlfdb_transaction_get(_Transaction, _Key, _Snapshot) -> ?NOT_LOADED.
 %% erlfdb_transaction_get_key(_Transaction, _Key) -> ?NOT_LOADED.
 %% erlfdb_transaction_get_range(_Transaction, _Range, _GetRangeOptions) -> ?NOT_LOADED.
 %% erlfdb_transaction_set(_Transaction, _Key, _Value) -> ?NOT_LOADED.

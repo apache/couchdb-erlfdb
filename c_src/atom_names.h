@@ -69,3 +69,30 @@ ATOM_MAP(max_watches);
 ATOM_MAP(machine_id);
 ATOM_MAP(datacenter_id);
 
+
+// Transaction Options
+ATOM_MAP(causal_write_risky);
+ATOM_MAP(causal_read_risky);
+ATOM_MAP(causal_read_disable);
+ATOM_MAP(next_write_no_write_conflict_range);
+ATOM_MAP(read_your_writes_disable);
+ATOM_MAP(read_ahead_disable);
+ATOM_MAP(durability_datacenter);
+ATOM_MAP(durability_risky);
+ATOM_MAP(durability_dev_null_is_web_scale);
+ATOM_MAP(priority_system_immediate);
+ATOM_MAP(priority_batch);
+ATOM_MAP(initialize_new_database);
+ATOM_MAP(access_system_keys);
+ATOM_MAP(read_system_keys);
+ATOM_MAP(debug_retry_logging);
+ATOM_MAP(transaction_logging_enable);
+ATOM_MAP(timeout);
+ATOM_MAP(retry_limit);
+ATOM_MAP(max_retry_delay);
+ATOM_MAP(snapshot_ryw_enable);
+ATOM_MAP(snapshot_ryw_disable);
+ATOM_MAP(lock_aware);
+ATOM_MAP(used_during_commit_protection_disable);
+ATOM_MAP(read_lock_aware);
+
