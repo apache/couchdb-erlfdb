@@ -124,3 +124,14 @@ ATOM_MAP(byte_min);
 ATOM_MAP(byte_max);
 ATOM_MAP(set_versionstamped_key);
 ATOM_MAP(set_versionstamped_value);
+
+
+// Conflict Range Types
+ATOM_MAP(read);
+ATOM_MAP(write);
+
+
+// Error Predicates
+ATOM_MAP(retryable);
+ATOM_MAP(maybe_committed);
+ATOM_MAP(retryable_not_committed);
