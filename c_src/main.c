@@ -934,19 +934,19 @@ erlfdb_transaction_get_range(
         return enif_make_badarg(env);
     }
 
-    if(enif_compare(argv[5], ATOM_stream_want_all) == 0) {
+    if(IS_ATOM(argv[5], stream_want_all)) {
         mode = FDB_STREAMING_MODE_WANT_ALL;
-    } else if(enif_compare(argv[5], ATOM_stream_iterator) == 0) {
+    } else if(IS_ATOM(argv[5], stream_iterator)) {
         mode = FDB_STREAMING_MODE_ITERATOR;
-    } else if(enif_compare(argv[5], ATOM_stream_exact) == 0) {
+    } else if(IS_ATOM(argv[5], stream_exact)) {
         mode = FDB_STREAMING_MODE_EXACT;
-    } else if(enif_compare(argv[5], ATOM_stream_small) == 0) {
+    } else if(IS_ATOM(argv[5], stream_small)) {
         mode = FDB_STREAMING_MODE_SMALL;
-    } else if(enif_compare(argv[5], ATOM_stream_medium) == 0) {
+    } else if(IS_ATOM(argv[5], stream_medium)) {
         mode = FDB_STREAMING_MODE_MEDIUM;
-    } else if(enif_compare(argv[5], ATOM_stream_large) == 0) {
+    } else if(IS_ATOM(argv[5], stream_large)) {
         mode = FDB_STREAMING_MODE_LARGE;
-    } else if(enif_compare(argv[5], ATOM_stream_serial) == 0) {
+    } else if(IS_ATOM(argv[5], stream_serial)) {
         mode = FDB_STREAMING_MODE_SERIAL;
     } else {
         return enif_make_badarg(env);
@@ -1144,27 +1144,27 @@ erlfdb_transaction_atomic_op(
         return enif_make_badarg(env);
     }
 
-    if(enif_compare(argv[2], ATOM_add) == 0) {
+    if(IS_ATOM(argv[2], add)) {
         mtype = FDB_MUTATION_TYPE_ADD;
-    } else if(enif_compare(argv[2], ATOM_bit_and) == 0) {
+    } else if(IS_ATOM(argv[2], bit_and)) {
         mtype = FDB_MUTATION_TYPE_BIT_AND;
-    } else if(enif_compare(argv[2], ATOM_bit_or) == 0) {
+    } else if(IS_ATOM(argv[2], bit_or)) {
         mtype = FDB_MUTATION_TYPE_BIT_OR;
-    } else if(enif_compare(argv[2], ATOM_bit_xor) == 0) {
+    } else if(IS_ATOM(argv[2], bit_xor)) {
         mtype = FDB_MUTATION_TYPE_BIT_XOR;
-    } else if(enif_compare(argv[2], ATOM_append_if_fits) == 0) {
+    } else if(IS_ATOM(argv[2], append_if_fits)) {
         mtype = FDB_MUTATION_TYPE_APPEND_IF_FITS;
-    } else if(enif_compare(argv[2], ATOM_max) == 0) {
+    } else if(IS_ATOM(argv[2], max)) {
         mtype = FDB_MUTATION_TYPE_MAX;
-    } else if(enif_compare(argv[2], ATOM_min) == 0) {
+    } else if(IS_ATOM(argv[2], min)) {
         mtype = FDB_MUTATION_TYPE_MIN;
-    } else if(enif_compare(argv[2], ATOM_byte_min) == 0) {
+    } else if(IS_ATOM(argv[2], byte_min)) {
         mtype = FDB_MUTATION_TYPE_BYTE_MIN;
-    } else if(enif_compare(argv[2], ATOM_byte_max) == 0) {
+    } else if(IS_ATOM(argv[2], byte_max)) {
         mtype = FDB_MUTATION_TYPE_BYTE_MAX;
-    } else if(enif_compare(argv[2], ATOM_set_versionstamped_key) == 0) {
+    } else if(IS_ATOM(argv[2], set_versionstamped_key)) {
         mtype = FDB_MUTATION_TYPE_SET_VERSIONSTAMPED_KEY;
-    } else if(enif_compare(argv[2], ATOM_set_versionstamped_value) == 0) {
+    } else if(IS_ATOM(argv[2], set_versionstamped_value)) {
         mtype = FDB_MUTATION_TYPE_SET_VERSIONSTAMPED_VALUE;
     } else {
         return enif_make_badarg(env);
@@ -1460,9 +1460,9 @@ erlfdb_transaction_add_conflict_range(
         return enif_make_badarg(env);
     }
 
-    if(enif_compare(argv[3], ATOM_read) == 0) {
+    if(IS_ATOM(argv[3], read) == 0) {
         rtype = FDB_CONFLICT_RANGE_TYPE_READ;
-    } else if(enif_compare(argv[3], ATOM_write) == 0) {
+    } else if(IS_ATOM(argv[3], write) == 0) {
         rtype = FDB_CONFLICT_RANGE_TYPE_WRITE;
     } else {
         return enif_make_badarg(env);
@@ -1528,11 +1528,11 @@ erlfdb_error_predicate(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         return enif_make_badarg(env);
     }
 
-    if(enif_compare(argv[0], ATOM_retryable) == 0) {
+    if(IS_ATOM(argv[0], retryable) == 0) {
         pred = FDB_ERROR_PREDICATE_RETRYABLE;
-    } else if(enif_compare(argv[0], ATOM_maybe_committed) == 0) {
+    } else if(IS_ATOM(argv[0], maybe_committed) == 0) {
         pred = FDB_ERROR_PREDICATE_MAYBE_COMMITTED;
-    } else if(enif_compare(argv[0], ATOM_retryable_not_committed) == 0) {
+    } else if(IS_ATOM(argv[0], retryable_not_committed) == 0) {
         pred = FDB_ERROR_PREDICATE_RETRYABLE_NOT_COMMITTED;
     } else{
         return enif_make_badarg(env);

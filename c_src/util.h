@@ -22,6 +22,9 @@
 #define T3(e, a, b, c) enif_make_tuple3(e, a, b, c)
 #define T4(e, a, b, c, d) enif_make_tuple4(e, a, b, c, d)
 
+#define IS_ATOM(term, atom) (enif_compare(term, ATOM_##atom) == 0)
+
+
 ERL_NIF_TERM erlfdb_erlang_error(ErlNifEnv* env, fdb_error_t err);
 
 int erlfdb_get_boolean(ERL_NIF_TERM term, fdb_bool_t* ret);

@@ -33,9 +33,9 @@ erlfdb_erlang_error(ErlNifEnv* env, fdb_error_t err)
 int
 erlfdb_get_boolean(ERL_NIF_TERM term, fdb_bool_t* ret)
 {
-    if(enif_compare(term, ATOM_true) == 0) {
+    if(IS_ATOM(term, true) == 0) {
         *ret = 1;
-    } else if(enif_compare(term, ATOM_false) == 0) {
+    } else if(IS_ATOM(term, false) == 0) {
         *ret = 0;
     } else {
         return 0;
@@ -70,25 +70,25 @@ erlfdb_get_key_selector(
     }
 
     if(arity == 2) {
-        if(enif_compare(tuple[1], ATOM_lt) == 0) {
+        if(IS_ATOM(tuple[1], lt) == 0) {
             *or_equal = 0;
             *offset = 0;
-        } else if(enif_compare(tuple[1], ATOM_lteq) == 0) {
+        } else if(IS_ATOM(tuple[1], lteq) == 0) {
             *or_equal = 1;
             *offset = 0;
-        } else if(enif_compare(tuple[1], ATOM_gt) == 0) {
+        } else if(IS_ATOM(tuple[1], gt) == 0) {
             *or_equal = 1;
             *offset = 1;
-        } else if(enif_compare(tuple[1], ATOM_gteq) == 0) {
+        } else if(IS_ATOM(tuple[1], gteq) == 0) {
             *or_equal = 0;
             *offset = 1;
         } else {
             return 0;
         }
     } else if(arity == 3) {
-        if(enif_compare(tuple[1], ATOM_true) == 0) {
+        if(IS_ATOM(tuple[1], true) == 0) {
             *or_equal = 1;
-        } else if(enif_compare(tuple[1], ATOM_false) == 0) {
+        } else if(IS_ATOM(tuple[1], false) == 0) {
             *or_equal = 0;
         } else {
             return 0;
