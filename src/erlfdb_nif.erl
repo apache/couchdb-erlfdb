@@ -27,12 +27,15 @@
 
     create_cluster/0,
     create_cluster/1,
+    cluster_set_option/2,
     cluster_set_option/3,
     cluster_create_database/2,
 
+    database_set_option/2,
     database_set_option/3,
     database_create_transaction/1,
 
+    transaction_set_option/2,
     transaction_set_option/3,
     transaction_set_read_version/2,
     transaction_get_read_version/1,
@@ -229,9 +232,18 @@ create_cluster(ClusterFilePath) ->
     erlfdb_create_cluster(NifPath).
 
 
--spec cluster_set_option(cluster(), Opt::atom(), Val::option_value()) ->
+-spec cluster_set_option(cluster(), Option::cluster_option()) ->
         ok | error().
-cluster_set_option({erlfdb, Cluster}, Opt, Value) ->
+cluster_set_option(Cluster, Option) ->
+    cluster_set_option(Cluster, Option, <<>>).
+
+
+-spec cluster_set_option(
+        cluster(),
+        Option::cluster_option(),
+        Value::option_value()
+    ) -> ok | error().
+cluster_set_option({erlfdb_cluster, Cluster}, Opt, Value) ->
     erlfdb_cluster_set_option(Cluster, Opt, Value).
 
 
@@ -241,9 +253,18 @@ cluster_create_database({erlfdb_cluster, Cluster}, DbName) ->
     erlfdb_cluster_create_database(Cluster, DbName).
 
 
--spec database_set_option(database(), Opt::atom(), Val::option_value()) ->
+-spec database_set_option(database(), Option::database_option()) ->
         ok | error().
-database_set_option({erlfdb, Db}, Opt, Val) ->
+database_set_option(Database, Option) ->
+    database_set_option(Database, Option, <<>>).
+
+
+-spec database_set_option(
+        database(),
+        Option::database_option(),
+        Value::option_value()
+    ) -> ok | error().
+database_set_option({erlfdb_database, Db}, Opt, Val) ->
     erlfdb_database_set_option(Db, Opt, Val).
 
 
@@ -253,10 +274,23 @@ database_create_transaction({erlfdb_database, Db}) ->
     erlfdb_database_create_transaction(Db).
 
 
--spec transaction_set_option(transaction(), Opt::atom(), Val::option_value()) ->
+-spec transaction_set_option(transaction(), Option::transaction_option()) ->
         ok | error().
+transaction_set_option(Transaction, Option) ->
+    transaction_set_option(Transaction, Option, <<>>).
+
+
+-spec transaction_set_option(
+        transaction(),
+        Option::transaction_option(),
+        Value::option_value()
+    ) -> ok | error().
 transaction_set_option({erlfdb_transaction, Tx}, Opt, Val) ->
-    erlfdb_transaction_set_option(Tx, Opt, Val).
+    BinVal = case Val of
+        B when is_binary(B) -> B;
+        I when is_integer(I) -> <<I:8/little-unsigned-integer-unit:8>>
+    end,
+    erlfdb_transaction_set_option(Tx, Opt, BinVal).
 
 
 -spec transaction_set_read_version(transaction(), Version::integer()) -> ok.
@@ -450,9 +484,9 @@ init() ->
 
         lists:foreach(fun(Option) ->
             case Option of
-                Name when is_atom(A) ->
+                Name when is_atom(Name) ->
                     ok = network_set_option(Name, <<>>);
-                {Name, Value} when is_atom(A) ->
+                {Name, Value} when is_atom(Name) ->
                     ok = network_set_option(Name, Value)
             end
         end, Opts),
@@ -469,7 +503,8 @@ select_api_version(Version) when is_integer(Version), Version > 0 ->
     erlfdb_select_api_version(Version).
 
 
--spec network_set_option(Option::network_option(), Value::option_value())
+-spec network_set_option(Option::network_option(), Value::option_value()) ->
+        ok | error().
 network_set_option(Name, Value) ->
     BinValue = case Value of
         B when is_binary(B) -> B;

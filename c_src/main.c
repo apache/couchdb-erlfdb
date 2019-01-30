@@ -391,7 +391,7 @@ erlfdb_network_set_option(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         option = FDB_NET_OPTION_TLS_PLUGIN;
     } else if(IS_ATOM(argv[0], tls_cert_bytes)) {
         option = FDB_NET_OPTION_TLS_CERT_BYTES;
-    } else if(IS_ATOM(argv[0], tls_cet_path)) {
+    } else if(IS_ATOM(argv[0], tls_cert_path)) {
         option = FDB_NET_OPTION_TLS_CERT_PATH;
     } else if(IS_ATOM(argv[0], tls_key_bytes)) {
         option = FDB_NET_OPTION_TLS_KEY_BYTES;
@@ -404,14 +404,14 @@ erlfdb_network_set_option(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     } else if(IS_ATOM(argv[0], buggify_disable)) {
         option = FDB_NET_OPTION_BUGGIFY_DISABLE;
     } else if(IS_ATOM(argv[0], buggify_section_activated_probability)) {
-        option = FDB_NET_OPTION_BUGGIFY_SECTIION_ACTIVATED_PROBABILITY;
+        option = FDB_NET_OPTION_BUGGIFY_SECTION_ACTIVATED_PROBABILITY;
     } else if(IS_ATOM(argv[0], buggify_section_fired_probability)) {
         option = FDB_NET_OPTION_BUGGIFY_SECTION_FIRED_PROBABILITY;
     } else if(IS_ATOM(argv[0], tls_ca_bytes)) {
         option = FDB_NET_OPTION_TLS_CA_BYTES;
     } else if(IS_ATOM(argv[0], tls_password)) {
         option = FDB_NET_OPTION_TLS_PASSWORD;
-    } else if(IS_ATOM(argv[0], disable_multiversion_client_api)) {
+    } else if(IS_ATOM(argv[0], disable_multi_version_client_api)) {
         option = FDB_NET_OPTION_DISABLE_MULTI_VERSION_CLIENT_API;
     } else if(IS_ATOM(argv[0], callbacks_on_external_threads)) {
         option = FDB_NET_OPTION_CALLBACKS_ON_EXTERNAL_THREADS;
@@ -687,14 +687,63 @@ erlfdb_cluster_create_database(
 static ERL_NIF_TERM
 erlfdb_database_set_option(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-    // ToDo: Actually write this bit
-    return enif_make_badarg(env);
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    ErlFDBDatabase* d;
+    FDBDatabaseOption option;
+    ErlNifBinary value;
+    fdb_error_t err;
+    void* res;
+
+    if(st->lib_state != ErlFDB_CONNECTED) {
+        return enif_make_badarg(env);
+    }
+
+    if(argc != 3) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_resource(env, argv[0], ErlFDBDatabaseRes, &res)) {
+        return enif_make_badarg(env);
+    }
+    d = (ErlFDBDatabase*) res;
+
+    if(IS_ATOM(argv[1], location_cache_size)) {
+        option = FDB_DB_OPTION_LOCATION_CACHE_SIZE;
+    } else if(IS_ATOM(argv[1], max_watches)) {
+        option = FDB_DB_OPTION_MAX_WATCHES;
+    } else if(IS_ATOM(argv[1], machine_id)) {
+        option = FDB_DB_OPTION_MACHINE_ID;
+    } else if(IS_ATOM(argv[1], datacenter_id)) {
+        option = FDB_DB_OPTION_DATACENTER_ID;
+    } else {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_inspect_binary(env, argv[2], &value)) {
+        return enif_make_badarg(env);
+    }
+
+    err = fdb_database_set_option(
+            d->database,
+            option,
+            (uint8_t*) value.data,
+            value.size
+        );
+
+    if(err != 0) {
+        return erlfdb_erlang_error(env, err);
+    }
+
+    return ATOM_ok;
 }
 
 
 static ERL_NIF_TERM
 erlfdb_database_create_transaction(
-        ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+        ErlNifEnv* env,
+        int argc,
+        const ERL_NIF_TERM argv[]
+    )
 {
     ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
     ErlFDBDatabase* d;
@@ -733,10 +782,99 @@ erlfdb_database_create_transaction(
 
 static ERL_NIF_TERM
 erlfdb_transaction_set_option(
-        ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+        ErlNifEnv* env,
+        int argc,
+        const ERL_NIF_TERM argv[]
+    )
 {
-    // ToDo: Implement this
-    return enif_make_badarg(env);
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    ErlFDBTransaction* t;
+    FDBTransactionOption option;
+    ErlNifBinary value;
+    fdb_error_t err;
+    void* res;
+
+    if(st->lib_state != ErlFDB_CONNECTED) {
+        return enif_make_badarg(env);
+    }
+
+    if(argc != 3) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_resource(env, argv[0], ErlFDBTransactionRes, &res)) {
+        return enif_make_badarg(env);
+    }
+    t = (ErlFDBTransaction*) res;
+
+    if(IS_ATOM(argv[1], causal_write_risky)) {
+        option = FDB_TR_OPTION_CAUSAL_WRITE_RISKY;
+    } else if(IS_ATOM(argv[1], causal_read_risky)) {
+        option = FDB_TR_OPTION_CAUSAL_READ_RISKY;
+    } else if(IS_ATOM(argv[1], causal_read_disable)) {
+        option = FDB_TR_OPTION_CAUSAL_READ_DISABLE;
+    } else if(IS_ATOM(argv[1], next_write_no_write_conflict_range)) {
+        option = FDB_TR_OPTION_NEXT_WRITE_NO_WRITE_CONFLICT_RANGE;
+    } else if(IS_ATOM(argv[1], read_your_writes_disable)) {
+        option = FDB_TR_OPTION_READ_YOUR_WRITES_DISABLE;
+    } else if(IS_ATOM(argv[1], read_ahead_disable)) {
+        option = FDB_TR_OPTION_READ_AHEAD_DISABLE;
+    } else if(IS_ATOM(argv[1], durability_datacenter)) {
+        option = FDB_TR_OPTION_DURABILITY_DATACENTER;
+    } else if(IS_ATOM(argv[1], durability_risky)) {
+        option = FDB_TR_OPTION_DURABILITY_RISKY;
+    } else if(IS_ATOM(argv[1], durability_dev_null_is_web_scale)) {
+        option = FDB_TR_OPTION_DURABILITY_DEV_NULL_IS_WEB_SCALE;
+    } else if(IS_ATOM(argv[1], priority_system_immediate)) {
+        option = FDB_TR_OPTION_PRIORITY_SYSTEM_IMMEDIATE;
+    } else if(IS_ATOM(argv[1], priority_batch)) {
+        option = FDB_TR_OPTION_PRIORITY_BATCH;
+    } else if(IS_ATOM(argv[1], initialize_new_database)) {
+        option = FDB_TR_OPTION_INITIALIZE_NEW_DATABASE;
+    } else if(IS_ATOM(argv[1], access_system_keys)) {
+        option = FDB_TR_OPTION_ACCESS_SYSTEM_KEYS;
+    } else if(IS_ATOM(argv[1], read_system_keys)) {
+        option = FDB_TR_OPTION_READ_SYSTEM_KEYS;
+    } else if(IS_ATOM(argv[1], debug_retry_logging)) {
+        option = FDB_TR_OPTION_DEBUG_RETRY_LOGGING;
+    } else if(IS_ATOM(argv[1], transaction_logging_enable)) {
+        option = FDB_TR_OPTION_TRANSACTION_LOGGING_ENABLE;
+    } else if(IS_ATOM(argv[1], timeout)) {
+        option = FDB_TR_OPTION_TIMEOUT;
+    } else if(IS_ATOM(argv[1], retry_limit)) {
+        option = FDB_TR_OPTION_RETRY_LIMIT;
+    } else if(IS_ATOM(argv[1], max_retry_delay)) {
+        option = FDB_TR_OPTION_MAX_RETRY_DELAY;
+    } else if(IS_ATOM(argv[1], snapshot_ryw_enable)) {
+        option = FDB_TR_OPTION_SNAPSHOT_RYW_ENABLE;
+    } else if(IS_ATOM(argv[1], snapshot_ryw_disable)) {
+        option = FDB_TR_OPTION_SNAPSHOT_RYW_DISABLE;
+    } else if(IS_ATOM(argv[1], lock_aware)) {
+        option = FDB_TR_OPTION_LOCK_AWARE;
+    } else if(IS_ATOM(argv[1], used_during_commit_protection_disable)) {
+        option = FDB_TR_OPTION_USED_DURING_COMMIT_PROTECTION_DISABLE;
+    } else if(IS_ATOM(argv[1], read_lock_aware)) {
+        option = FDB_TR_OPTION_READ_LOCK_AWARE;
+    } else {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_inspect_binary(env, argv[2], &value)) {
+        return enif_make_badarg(env);
+    }
+
+    err = fdb_transaction_set_option(
+            t->transaction,
+            option,
+            (uint8_t*) value.data,
+            value.size
+        );
+
+    if(err != 0) {
+        return erlfdb_erlang_error(env, err);
+    }
+
+    return ATOM_ok;
 }
 
 
