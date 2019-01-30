@@ -361,6 +361,9 @@ static ERL_NIF_TERM
 erlfdb_network_set_option(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    FDBNetworkOption option;
+    ErlNifBinary value;
+    fdb_error_t err;
 
     if(st->lib_state != ErlFDB_API_SELECTED) {
         return enif_make_badarg(env);
@@ -370,7 +373,72 @@ erlfdb_network_set_option(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         return enif_make_badarg(env);
     }
 
-    return ATOM_error;
+    if(IS_ATOM(argv[0], local_address)) {
+        option = FDB_NET_OPTION_LOCAL_ADDRESS;
+    } else if(IS_ATOM(argv[0], cluster_file)) {
+        option = FDB_NET_OPTION_CLUSTER_FILE;
+    } else if(IS_ATOM(argv[0], trace_enable)) {
+        option = FDB_NET_OPTION_TRACE_ENABLE;
+    } else if(IS_ATOM(argv[0], trace_roll_size)) {
+        option = FDB_NET_OPTION_TRACE_ROLL_SIZE;
+    } else if(IS_ATOM(argv[0], trace_max_logs_size)) {
+        option = FDB_NET_OPTION_TRACE_MAX_LOGS_SIZE;
+    } else if(IS_ATOM(argv[0], trace_log_group)) {
+        option = FDB_NET_OPTION_TRACE_LOG_GROUP;
+    } else if(IS_ATOM(argv[0], knob)) {
+        option = FDB_NET_OPTION_KNOB;
+    } else if(IS_ATOM(argv[0], tls_plugin)) {
+        option = FDB_NET_OPTION_TLS_PLUGIN;
+    } else if(IS_ATOM(argv[0], tls_cert_bytes)) {
+        option = FDB_NET_OPTION_TLS_CERT_BYTES;
+    } else if(IS_ATOM(argv[0], tls_cet_path)) {
+        option = FDB_NET_OPTION_TLS_CERT_PATH;
+    } else if(IS_ATOM(argv[0], tls_key_bytes)) {
+        option = FDB_NET_OPTION_TLS_KEY_BYTES;
+    } else if(IS_ATOM(argv[0], tls_key_path)) {
+        option = FDB_NET_OPTION_TLS_KEY_PATH;
+    } else if(IS_ATOM(argv[0], tls_verify_peers)) {
+        option = FDB_NET_OPTION_TLS_VERIFY_PEERS;
+    } else if(IS_ATOM(argv[0], buggify_enable)) {
+        option = FDB_NET_OPTION_BUGGIFY_ENABLE;
+    } else if(IS_ATOM(argv[0], buggify_disable)) {
+        option = FDB_NET_OPTION_BUGGIFY_DISABLE;
+    } else if(IS_ATOM(argv[0], buggify_section_activated_probability)) {
+        option = FDB_NET_OPTION_BUGGIFY_SECTIION_ACTIVATED_PROBABILITY;
+    } else if(IS_ATOM(argv[0], buggify_section_fired_probability)) {
+        option = FDB_NET_OPTION_BUGGIFY_SECTION_FIRED_PROBABILITY;
+    } else if(IS_ATOM(argv[0], tls_ca_bytes)) {
+        option = FDB_NET_OPTION_TLS_CA_BYTES;
+    } else if(IS_ATOM(argv[0], tls_password)) {
+        option = FDB_NET_OPTION_TLS_PASSWORD;
+    } else if(IS_ATOM(argv[0], disable_multiversion_client_api)) {
+        option = FDB_NET_OPTION_DISABLE_MULTI_VERSION_CLIENT_API;
+    } else if(IS_ATOM(argv[0], callbacks_on_external_threads)) {
+        option = FDB_NET_OPTION_CALLBACKS_ON_EXTERNAL_THREADS;
+    } else if(IS_ATOM(argv[0], external_client_library)) {
+        option = FDB_NET_OPTION_EXTERNAL_CLIENT_LIBRARY;
+    } else if(IS_ATOM(argv[0], external_client_directory)) {
+        option = FDB_NET_OPTION_EXTERNAL_CLIENT_DIRECTORY;
+    } else if(IS_ATOM(argv[0], disable_local_client)) {
+        option = FDB_NET_OPTION_DISABLE_LOCAL_CLIENT;
+    } else if(IS_ATOM(argv[0], disable_client_statistics_logging)) {
+        option = FDB_NET_OPTION_DISABLE_CLIENT_STATISTICS_LOGGING;
+    } else if(IS_ATOM(argv[0], enable_slow_task_profiling)) {
+        option = FDB_NET_OPTION_ENABLE_SLOW_TASK_PROFILING;
+    } else {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_inspect_binary(env, argv[1], &value)) {
+        return enif_make_badarg(env);
+    }
+
+    err = fdb_network_set_option(option, (uint8_t*) value.data, value.size);
+    if(err != 0) {
+        return erlfdb_erlang_error(env, err);
+    }
+
+    return ATOM_ok;
 }
 
 
