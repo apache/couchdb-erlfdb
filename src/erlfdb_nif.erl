@@ -68,7 +68,7 @@
 -type transaction() :: {erlfdb_transaction, reference()}.
 
 -type error() :: {error, Code::integer(), Description::binary()}.
--type option_value() :: no_value | integer() | binary().
+-type option_value() :: integer() | binary().
 
 -type key_selector() ::
     {Key::binary(), lt | lteq | gt | gteq} |
@@ -82,6 +82,69 @@
     {ok, not_found} |
     {error, invalid_future_type} |
     error().
+
+-type network_option() ::
+    local_address |
+    cluster_file |
+    trace_enable |
+    trace_roll_size |
+    trace_max_logs_size |
+    trace_log_group |
+    knob |
+    tls_plugin |
+    tls_cert_bytes |
+    tls_cert_path |
+    tls_key_bytes |
+    tls_key_path |
+    tls_verify_peers |
+    buggify_enable |
+    buggify_disable |
+    buggify_section_activated_probability |
+    buggify_section_fired_probability |
+    tls_ca_bytes |
+    tls_ca_path |
+    tls_password |
+    disable_multi_version_client_api |
+    callbacks_on_external_threads |
+    external_client_library |
+    external_client_directory |
+    disable_local_client |
+    disable_client_statistics_logging |
+    enable_slow_task_profiling.
+
+-type cluster_option() :: there_are_no_cluster_options.
+
+-type database_option() ::
+    location_cache_size |
+    max_watches |
+    machine_id |
+    datacenter_id.
+
+-type transaction_option() ::
+    causal_write_risky |
+    causal_read_risky |
+    causal_read_disable |
+    next_write_no_write_conflict_range |
+    read_your_writes_disable |
+    read_ahead_disable |
+    durability_datacenter |
+    durability_risky |
+    durability_dev_null_is_web_scale |
+    priority_system_immediate |
+    priority_batch |
+    initialize_new_database |
+    access_system_keys |
+    read_system_keys |
+    debug_retry_logging |
+    transaction_logging_enable |
+    timeout |
+    retry_limit |
+    max_retry_delay |
+    snapshot_ryw_enable |
+    snapshot_ryw_disable |
+    lock_aware |
+    used_during_commit_protection_disable |
+    read_lock_aware.
 
 -type streaming_mode() ::
     stream_want_all |
@@ -378,15 +441,20 @@ init() ->
             {ok, V} -> V;
             undefined -> ?DEFAULT_API_VERSION
         end,
-        ok = erlfdb_select_api_version(Vsn),
+        ok = select_api_version(Vsn),
 
         Opts = case application:get_env(erlfdb, network_options) of
             {ok, O} when is_list(O) -> O;
             undefined -> []
         end,
 
-        lists:foreach(fun({Name, Value}) ->
-            ok = erlfdb_network_set_option(Name, Value)
+        lists:foreach(fun(Option) ->
+            case Option of
+                Name when is_atom(A) ->
+                    ok = network_set_option(Name, <<>>);
+                {Name, Value} when is_atom(A) ->
+                    ok = network_set_option(Name, Value)
+            end
         end, Opts),
 
         erlfdb_setup_network()
@@ -394,6 +462,20 @@ init() ->
 
 
 -define(NOT_LOADED, erlang:nif_error({erlfdb_nif_not_loaded, ?FILE, ?LINE})).
+
+
+-spec select_api_version(Version::pos_integer()) -> ok.
+select_api_version(Version) when is_integer(Version), Version > 0 ->
+    erlfdb_select_api_version(Version).
+
+
+-spec network_set_option(Option::network_option(), Value::option_value())
+network_set_option(Name, Value) ->
+    BinValue = case Value of
+        B when is_binary(B) -> B;
+        I when is_integer(I) -> <<I:8/little-unsigned-integer-unit:8>>
+    end,
+    erlfdb_network_set_option(Name, BinValue).
 
 
 % Sentinel Check
