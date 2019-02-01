@@ -16,6 +16,7 @@
 -export([
     pack/1,
     unpack/1,
+    range/1,
     compare/2
 ]).
 
@@ -99,8 +100,31 @@ unpack(Binary) ->
     end.
 
 
-compare(_A, _B) ->
-    erlang:error(not_implemented).
+% Returns a {StartKey, EndKey} pair of binaries
+% that includes all possible sub-tuples
+range(Tuple) ->
+    Base = pack(Tuple),
+    {<<Base/binary, 16#00>>, <<Base/binary, 16#FF>>}.
+
+
+compare(A, B) when is_tuple(A), is_tuple(B) ->
+    AElems = tuple_to_list(A),
+    BElems = tuple_to_list(B),
+    compare_impl(AElems, BElems).
+
+
+compare_impl([], []) ->
+    0;
+compare_impl([], [_|_]) ->
+    -1;
+compare_impl([_|_], []) ->
+    1;
+compare_impl([A | RestA], [B | RestB]) ->
+    case compare_elems(A, B) of
+        -1 -> -1;
+        0 -> compare_impl(RestA, RestB);
+        1 -> 1
+    end.
 
 
 encode(null, 0) ->
@@ -341,6 +365,52 @@ dec_float(<<0:1, _:7, _/binary>> = Bin, Size) ->
 dec_float(<<Byte:8/integer, Rest/binary>>, Size) ->
     <<Val:Size/float>> = <<(Byte band 16#7F):8/integer, Rest/binary>>,
     Val.
+
+
+compare_elems(A, B) ->
+    CodeA = code_for(A),
+    CodeB = code_for(B),
+
+    case {code_for(A), code_for(B)} of
+        {CodeA, CodeB} when CodeA < CodeB ->
+            -1;
+        {CodeA, CodeB} when CodeA > CodeB ->
+            1;
+        {Code, Code} when Code == ?NULL ->
+            0;
+        {Code, Code} when Code == ?FLOAT; Code == ?DOUBLE ->
+            compare_floats(A, B);
+        {Code, Code} when Code == ?NESTED ->
+            compare(A, B);
+        {Code, Code} when A < B ->
+            -1;
+        {Code, Code} when A > B ->
+            1;
+        {Code, Code} when A == B ->
+            0
+    end.
+
+
+compare_floats({float, F1}, {float, F2}) ->
+    compare_floats(F1, F2);
+compare_floats(F1, F2) when is_float(F1), is_float(F2) ->
+    pack({F1}) < pack({F2}).
+
+
+code_for(null) -> ?NULL;
+code_for(<<_/binary>>) -> ?BYTES;
+code_for({utf8, <<_/binary>>}) -> ?STRING;
+code_for(I) when is_integer(I) -> ?ZERO;
+code_for({float, F}) when is_float(F) -> ?FLOAT;
+code_for(F) when is_float(F) -> ?DOUBLE;
+code_for(false) -> ?FALSE;
+code_for(true) -> ?TRUE;
+code_for({uuid, <<_:16/binary>>}) -> ?UUID;
+code_for({id64, _Id}) -> ?ID64;
+code_for({versionstamp, _Id, _Batch}) -> ?VS80;
+code_for({versionstamp, _Id, _Batch, _Tx}) -> ?VS96;
+code_for(T) when is_tuple(T) -> ?NESTED;
+code_for(Bad) -> erlang:error({invalid_tuple_element, Bad}).
 
 
 -ifdef(TEST).
