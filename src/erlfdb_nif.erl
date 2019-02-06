@@ -39,7 +39,6 @@
     transaction_set_option/3,
     transaction_set_read_version/2,
     transaction_get_read_version/1,
-    transaction_get/2,
     transaction_get/3,
     transaction_get_key/3,
     transaction_get_addresses_for_key/2,
@@ -65,12 +64,12 @@
 -define(DEFAULT_API_VERSION, 600).
 
 
+-type error() :: {erlfdb_error, Code::integer()}.
 -type future() :: {erlfdb_future, reference(), reference()}.
 -type cluster() :: {erlfdb_cluster, reference()}.
 -type database() :: {erlfdb_database, reference()}.
 -type transaction() :: {erlfdb_transaction, reference()}.
 
--type error() :: {error, Code::integer(), Description::binary()}.
 -type option_value() :: integer() | binary().
 
 -type key_selector() ::
@@ -83,8 +82,7 @@
     {ok, Version::integer()} |
     {ok, KeyOrValue::binary()} |
     {ok, not_found} |
-    {error, invalid_future_type} |
-    error().
+    {error, invalid_future_type}.
 
 -type network_option() ::
     local_address |
@@ -232,8 +230,7 @@ create_cluster(ClusterFilePath) ->
     erlfdb_create_cluster(NifPath).
 
 
--spec cluster_set_option(cluster(), Option::cluster_option()) ->
-        ok | error().
+-spec cluster_set_option(cluster(), Option::cluster_option()) -> ok.
 cluster_set_option(Cluster, Option) ->
     cluster_set_option(Cluster, Option, <<>>).
 
@@ -242,19 +239,17 @@ cluster_set_option(Cluster, Option) ->
         cluster(),
         Option::cluster_option(),
         Value::option_value()
-    ) -> ok | error().
+    ) -> ok.
 cluster_set_option({erlfdb_cluster, Cluster}, Opt, Value) ->
     erlfdb_cluster_set_option(Cluster, Opt, Value).
 
 
--spec cluster_create_database(cluster(), DbName::binary()) ->
-        {ok, database()} | error().
+-spec cluster_create_database(cluster(), DbName::binary()) -> {ok, database()}.
 cluster_create_database({erlfdb_cluster, Cluster}, DbName) ->
     erlfdb_cluster_create_database(Cluster, DbName).
 
 
--spec database_set_option(database(), Option::database_option()) ->
-        ok | error().
+-spec database_set_option(database(), Option::database_option()) -> ok.
 database_set_option(Database, Option) ->
     database_set_option(Database, Option, <<>>).
 
@@ -263,19 +258,18 @@ database_set_option(Database, Option) ->
         database(),
         Option::database_option(),
         Value::option_value()
-    ) -> ok | error().
+    ) -> ok.
 database_set_option({erlfdb_database, Db}, Opt, Val) ->
     erlfdb_database_set_option(Db, Opt, Val).
 
 
 -spec database_create_transaction(database()) ->
-        {ok, transaction()} | error().
+        {ok, transaction()}.
 database_create_transaction({erlfdb_database, Db}) ->
     erlfdb_database_create_transaction(Db).
 
 
--spec transaction_set_option(transaction(), Option::transaction_option()) ->
-        ok | error().
+-spec transaction_set_option(transaction(), Option::transaction_option()) -> ok.
 transaction_set_option(Transaction, Option) ->
     transaction_set_option(Transaction, Option, <<>>).
 
@@ -284,7 +278,7 @@ transaction_set_option(Transaction, Option) ->
         transaction(),
         Option::transaction_option(),
         Value::option_value()
-    ) -> ok | error().
+    ) -> ok.
 transaction_set_option({erlfdb_transaction, Tx}, Opt, Val) ->
     BinVal = case Val of
         B when is_binary(B) -> B;
@@ -298,17 +292,13 @@ transaction_set_read_version({erlfdb_transaction, Tx}, Version) ->
     erlfdb_transaction_set_read_version(Tx, Version).
 
 
--spec transaction_get_read_version(transaction()) -> future() | error().
+-spec transaction_get_read_version(transaction()) -> future().
 transaction_get_read_version({erlfdb_transaction, Tx}) ->
     erlfdb_transaction_get_read_version(Tx).
 
 
--spec transaction_get(transaction(), Key::binary()) -> future() | error().
-transaction_get({erlfdb_transaction, Tx}, Key) ->
-    erlfdb_transaction_get(Tx, Key, false).
-
 -spec transaction_get(transaction(), Key::binary(), Snapshot::boolean()) ->
-        future() | error().
+        future().
 transaction_get({erlfdb_transaction, Tx}, Key, Snapshot) ->
     erlfdb_transaction_get(Tx, Key, Snapshot).
 
@@ -317,13 +307,13 @@ transaction_get({erlfdb_transaction, Tx}, Key, Snapshot) ->
         transaction(),
         KeySelector::key_selector(),
         Snapshot::boolean()
-    ) -> future() | error().
+    ) -> future().
 transaction_get_key({erlfdb_transaction, Tx}, KeySelector, Snapshot) ->
     erlfdb_transaction_get_key(Tx, KeySelector, Snapshot).
 
 
 -spec transaction_get_addresses_for_key(transaction(), Key::binary()) ->
-        future() | error().
+        future().
 transaction_get_addresses_for_key({erlfdb_transaction, Tx}, Key) ->
     erlfdb_transaction_get_addresses_for_key(Tx, Key).
 
@@ -338,7 +328,7 @@ transaction_get_addresses_for_key({erlfdb_transaction, Tx}, Key) ->
         Iteration::non_neg_integer(),
         Snapshot::boolean(),
         Reverse::boolean()
-    ) -> future() | error().
+    ) -> future().
 transaction_get_range(
         {erlfdb_transaction, Tx},
         StartKeySelector,
@@ -396,28 +386,27 @@ transaction_atomic_op({erlfdb_transaction, Tx}, Key, Mode, ErlOperand) ->
     erlfdb_transaction_atomic_op(Tx, Key, Mode, BinOperand).
 
 
--spec transaction_commit(transaction()) -> future() | error().
+-spec transaction_commit(transaction()) -> future().
 transaction_commit({erlfdb_transaction, Tx}) ->
     erlfdb_transaction_commit(Tx).
 
 
--spec transaction_get_committed_version(transaction()) -> integer() | error().
+-spec transaction_get_committed_version(transaction()) -> integer().
 transaction_get_committed_version({erlfdb_transaction, Tx}) ->
     erlfdb_transaction_get_committed_version(Tx).
 
 
--spec transaction_get_versionstamp(transaction()) -> future() | error().
+-spec transaction_get_versionstamp(transaction()) -> future().
 transaction_get_versionstamp({erlfdb_transaction, Tx}) ->
     erlfdb_transaction_get_versionstamp(Tx).
 
 
--spec transaction_watch(transaction(), Key::binary()) -> future() | error().
+-spec transaction_watch(transaction(), Key::binary()) -> future().
 transaction_watch({erlfdb_transaction, Tx}, Key) ->
     erlfdb_transaction_watch(Tx, Key).
 
 
--spec transaction_on_error(transaction(), Error::integer()) ->
-        future() | error().
+-spec transaction_on_error(transaction(), Error::integer()) -> future().
 transaction_on_error({erlfdb_transaction, Tx}, Error) ->
     erlfdb_transaction_on_error(Tx, Error).
 
@@ -437,7 +426,7 @@ transaction_cancel({erlfdb_transaction, Tx}) ->
         StartKey::binary(),
         EndKey::binary(),
         ConflictType::conflict_type()
-    ) -> ok | error().
+    ) -> ok.
 transaction_add_conflict_range(
         {erlfdb_transaction, Tx},
         StartKey,
@@ -491,7 +480,7 @@ init() ->
             end
         end, Opts),
 
-        erlfdb_setup_network()
+        ok = erlfdb_setup_network()
     end.
 
 

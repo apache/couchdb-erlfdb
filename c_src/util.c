@@ -19,14 +19,9 @@
 ERL_NIF_TERM
 erlfdb_erlang_error(ErlNifEnv* env, fdb_error_t err)
 {
-    const char* msg = fdb_get_error(err);
-    unsigned char* bin;
-    ERL_NIF_TERM binterm;
-
-    bin = enif_make_new_binary(env, strlen(msg), &binterm);
-    memcpy(bin, msg, strlen(msg));
-
-    return T3(env, ATOM_error, enif_make_int(env, err), binterm);
+    ERL_NIF_TERM code = enif_make_int(env, err);
+    ERL_NIF_TERM tuple = T2(env, ATOM_erlfdb_error, code);
+    return enif_raise_exception(env, tuple);
 }
 
 

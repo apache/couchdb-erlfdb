@@ -84,7 +84,7 @@ erlfdb_future_cb(FDBFuture* fdb_future, void* data)
         caller = future->pid_env;
     }
 
-    msg = T2(future->msg_env, ATOM_ready, future->msg_ref);
+    msg = T2(future->msg_env, future->msg_ref, ATOM_ready);
     enif_send(caller, &(future->pid), future->msg_env, msg);
 
     return;
@@ -119,7 +119,7 @@ erlfdb_create_future(ErlNifEnv* env, FDBFuture* future, ErlFDBFutureType ftype)
     }
 
     ret = enif_make_resource(env, f);
-    return T2(env, ATOM_ok, T3(env, ATOM_erlfdb_future, ref, ret));
+    return T3(env, ATOM_erlfdb_future, ref, ret);
 }
 
 
@@ -137,7 +137,7 @@ erlfdb_future_get_version(ErlNifEnv* env, ErlFDBFuture* f)
 
     nif_vsn = fdb_vsn;
 
-    return T2(env, ATOM_ok, enif_make_int64(env, nif_vsn));
+    return enif_make_int64(env, nif_vsn);
 }
 
 
@@ -158,7 +158,7 @@ erlfdb_future_get_key(ErlNifEnv* env, ErlFDBFuture* f)
     buf = enif_make_new_binary(env, len, &ret);
     memcpy(buf, key, len);
 
-    return T2(env, ATOM_ok, ret);
+    return ret;
 }
 
 
@@ -181,7 +181,7 @@ erlfdb_future_get_cluster(ErlNifEnv* env, ErlFDBFuture* f)
     ret = enif_make_resource(env, c);
     enif_release_resource(c);
 
-    return T2(env, ATOM_ok, T2(env, ATOM_erlfdb_cluster, ret));
+    return T2(env, ATOM_erlfdb_cluster, ret);
 }
 
 
@@ -204,7 +204,7 @@ erlfdb_future_get_database(ErlNifEnv* env, ErlFDBFuture* f)
     ret = enif_make_resource(env, d);
     enif_release_resource(d);
 
-    return T2(env, ATOM_ok, T2(env, ATOM_erlfdb_database, ret));
+    return T2(env, ATOM_erlfdb_database, ret);
 }
 
 
@@ -224,13 +224,13 @@ erlfdb_future_get_value(ErlNifEnv* env, ErlFDBFuture* f)
     }
 
     if(!present) {
-        return T2(env, ATOM_ok, ATOM_not_found);
+        return ATOM_not_found;
     }
 
     buf = enif_make_new_binary(env, len, &ret);
     memcpy(buf, val, len);
 
-    return T2(env, ATOM_ok, ret);
+    return ret;
 }
 
 
@@ -322,7 +322,7 @@ erlfdb_get_max_api_version(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         return enif_make_badarg(env);
     }
 
-    return T2(env, ATOM_ok, enif_make_int(env, vsn));
+    return enif_make_int(env, vsn);
 }
 
 
@@ -562,7 +562,7 @@ erlfdb_future_get_error(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
     err = fdb_future_get_error(future->future);
 
-    return erlfdb_erlang_error(env, err);
+    return T2(env, ATOM_erlfdb_error, enif_make_int(env, err));
 }
 
 
@@ -776,7 +776,7 @@ erlfdb_database_create_transaction(
 
     ret = enif_make_resource(env, t);
     enif_release_resource(t);
-    return T2(env, ATOM_ok, T2(env, ATOM_erlfdb_transaction, ret));
+    return T2(env, ATOM_erlfdb_transaction, ret);
 }
 
 
@@ -1140,19 +1140,19 @@ erlfdb_transaction_get_range(
         return enif_make_badarg(env);
     }
 
-    if(IS_ATOM(argv[5], stream_want_all)) {
+    if(IS_ATOM(argv[5], want_all)) {
         mode = FDB_STREAMING_MODE_WANT_ALL;
-    } else if(IS_ATOM(argv[5], stream_iterator)) {
+    } else if(IS_ATOM(argv[5], iterator)) {
         mode = FDB_STREAMING_MODE_ITERATOR;
-    } else if(IS_ATOM(argv[5], stream_exact)) {
+    } else if(IS_ATOM(argv[5], exact)) {
         mode = FDB_STREAMING_MODE_EXACT;
-    } else if(IS_ATOM(argv[5], stream_small)) {
+    } else if(IS_ATOM(argv[5], small)) {
         mode = FDB_STREAMING_MODE_SMALL;
-    } else if(IS_ATOM(argv[5], stream_medium)) {
+    } else if(IS_ATOM(argv[5], medium)) {
         mode = FDB_STREAMING_MODE_MEDIUM;
-    } else if(IS_ATOM(argv[5], stream_large)) {
+    } else if(IS_ATOM(argv[5], large)) {
         mode = FDB_STREAMING_MODE_LARGE;
-    } else if(IS_ATOM(argv[5], stream_serial)) {
+    } else if(IS_ATOM(argv[5], serial)) {
         mode = FDB_STREAMING_MODE_SERIAL;
     } else {
         return enif_make_badarg(env);

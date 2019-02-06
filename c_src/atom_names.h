@@ -26,6 +26,7 @@ ATOM_MAP(gteq);
 
 ATOM_MAP(not_found);
 
+ATOM_MAP(erlfdb_error);
 ATOM_MAP(erlfdb_future);
 ATOM_MAP(erlfdb_cluster);
 ATOM_MAP(erlfdb_database);
@@ -103,13 +104,13 @@ ATOM_MAP(read_lock_aware);
 
 
 // Streaming mode
-ATOM_MAP(stream_want_all);
-ATOM_MAP(stream_iterator);
-ATOM_MAP(stream_exact);
-ATOM_MAP(stream_small);
-ATOM_MAP(stream_medium);
-ATOM_MAP(stream_large);
-ATOM_MAP(stream_serial);
+ATOM_MAP(want_all);
+ATOM_MAP(iterator);
+ATOM_MAP(exact);
+ATOM_MAP(small);
+ATOM_MAP(medium);
+ATOM_MAP(large);
+ATOM_MAP(serial);
 
 
 // Atomic Mutation Types
