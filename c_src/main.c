@@ -234,6 +234,70 @@ erlfdb_future_get_value(ErlNifEnv* env, ErlFDBFuture* f)
 }
 
 
+static inline ERL_NIF_TERM
+erlfdb_future_get_string_array(ErlNifEnv* env, ErlFDBFuture* f)
+{
+    const char** strings;
+    int count;
+    unsigned char* buf;
+    ERL_NIF_TERM bin;
+    ERL_NIF_TERM ret;
+    fdb_error_t err;
+    int i;
+
+    err = fdb_future_get_string_array(f->future, &strings, &count);
+    if(err != 0) {
+        return erlfdb_erlang_error(env, err);
+    }
+
+    ret = enif_make_list(env, 0);
+
+    for(i = count; i > 0; i--) {
+        buf = enif_make_new_binary(env, strlen(strings[i]), &bin);
+        memcpy(buf, strings[i], strlen(strings[i]));
+        ret = enif_make_list_cell(env, bin, ret);
+    }
+
+    return ret;
+}
+
+
+static inline ERL_NIF_TERM
+erlfdb_future_get_keyvalue_array(ErlNifEnv* env, ErlFDBFuture* f)
+{
+    FDBKeyValue const* kvs;
+    fdb_bool_t more;
+    int count;
+    unsigned char* buf;
+    ERL_NIF_TERM key;
+    ERL_NIF_TERM val;
+    ERL_NIF_TERM ret;
+    fdb_error_t err;
+    int i;
+
+    err = fdb_future_get_keyvalue_array(f->future, &kvs, &count, &more);
+    if(err != 0) {
+        return erlfdb_erlang_error(env, err);
+    }
+
+    ret = enif_make_list(env, 0);
+
+    for(i = count; i > 0; i--) {
+        buf = enif_make_new_binary(env, kvs[i].key_length, &key);
+        memcpy(buf, kvs[i].key, kvs[i].key_length);
+        buf = enif_make_new_binary(env, kvs[i].value_length, &val);
+        memcpy(buf, kvs[i].value, kvs[i].value_length);
+        ret = enif_make_list_cell(env, T2(env, key, val), ret);
+    }
+
+    if(more) {
+        return T2(env, ret, ATOM_true);
+    } else {
+        return T2(env, ret, ATOM_false);
+    }
+}
+
+
 static int
 erlfdb_load(ErlNifEnv* env, void** priv, ERL_NIF_TERM num_schedulers)
 {
@@ -596,6 +660,10 @@ erlfdb_future_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         return erlfdb_future_get_database(env, f);
     } else if(f->ftype == ErlFDB_FT_VALUE) {
         return erlfdb_future_get_value(env, f);
+    } else if(f->ftype == ErlFDB_FT_STRING_ARRAY) {
+        return erlfdb_future_get_string_array(env, f);
+    } else if(f->ftype == ErlFDB_FT_KEYVALUE_ARRAY) {
+        return erlfdb_future_get_keyvalue_array(env, f);
     }
 
     return T2(env, ATOM_error, ATOM_invalid_future_type);
