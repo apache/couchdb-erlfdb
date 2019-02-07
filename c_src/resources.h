@@ -26,6 +26,7 @@ extern ErlNifResourceType* ErlFDBTransactionRes;
 typedef enum _ErlFDBFutureType
 {
     ErlFDB_FT_NONE = 0,
+    ErlFDB_FT_VOID,
     ErlFDB_FT_VERSION,
     ErlFDB_FT_KEY,
     ErlFDB_FT_CLUSTER,

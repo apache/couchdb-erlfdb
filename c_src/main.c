@@ -124,6 +124,20 @@ erlfdb_create_future(ErlNifEnv* env, FDBFuture* future, ErlFDBFutureType ftype)
 
 
 static inline ERL_NIF_TERM
+erlfdb_future_get_void(ErlNifEnv* env, ErlFDBFuture* f)
+{
+    fdb_error_t err;
+
+    err = fdb_future_get_error(f->future);
+    if(err != 0) {
+        return erlfdb_erlang_error(env, err);
+    }
+
+    return ATOM_ok;
+}
+
+
+static inline ERL_NIF_TERM
 erlfdb_future_get_version(ErlNifEnv* env, ErlFDBFuture* f)
 {
     int64_t fdb_vsn;
@@ -650,7 +664,9 @@ erlfdb_future_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     }
     f = (ErlFDBFuture*) res;
 
-    if(f->ftype == ErlFDB_FT_VERSION) {
+    if(f->ftype == ErlFDB_FT_VOID) {
+        return erlfdb_future_get_void(env, f);
+    } else if(f->ftype == ErlFDB_FT_VERSION) {
         return erlfdb_future_get_version(env, f);
     } else if(f->ftype == ErlFDB_FT_KEY) {
         return erlfdb_future_get_key(env, f);
@@ -1487,7 +1503,7 @@ erlfdb_transaction_commit(
 
     future = fdb_transaction_commit(t->transaction);
 
-    return erlfdb_create_future(env, future, ErlFDB_FT_VALUE);
+    return erlfdb_create_future(env, future, ErlFDB_FT_VOID);
 }
 
 
@@ -1595,7 +1611,7 @@ erlfdb_transaction_watch(
             key.size
         );
 
-    return erlfdb_create_future(env, future, ErlFDB_FT_VALUE);
+    return erlfdb_create_future(env, future, ErlFDB_FT_VOID);
 }
 
 
@@ -1634,7 +1650,7 @@ erlfdb_transaction_on_error(
 
     future = fdb_transaction_on_error(t->transaction, fdb_err);
 
-    return erlfdb_create_future(env, future, ErlFDB_FT_VALUE);
+    return erlfdb_create_future(env, future, ErlFDB_FT_VOID);
 }
 
 
