@@ -110,7 +110,7 @@ erlfdb_create_future(ErlNifEnv* env, FDBFuture* future, ErlFDBFutureType ftype)
     err = fdb_future_set_callback(
             f->future,
             erlfdb_future_cb,
-            (void*) future
+            (void*) f
         );
 
     if(err != 0) {
