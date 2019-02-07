@@ -189,22 +189,22 @@ get_max_api_version() ->
 
 
 -spec future_cancel(future()) -> ok.
-future_cancel({erlfdb, _Ref, Ft}) ->
+future_cancel({erlfdb_future, _Ref, Ft}) ->
     erlfdb_future_cancel(Ft).
 
 
 -spec future_is_ready(future()) -> boolean().
-future_is_ready({elfdb, _Ref, Ft}) ->
+future_is_ready({elfdb_future, _Ref, Ft}) ->
     erlfdb_future_is_ready(Ft).
 
 
 -spec future_get_error(future()) -> error().
-future_get_error({erlfdb, _Ref, Ft}) ->
+future_get_error({erlfdb_future, _Ref, Ft}) ->
     erlfdb_future_get_error(Ft).
 
 
 -spec future_get(future()) -> future_result().
-future_get({erlfdb, _Ref, Ft}) ->
+future_get({erlfdb_future, _Ref, Ft}) ->
     erlfdb_future_get(Ft).
 
 
