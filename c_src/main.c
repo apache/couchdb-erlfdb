@@ -296,7 +296,7 @@ erlfdb_future_get_keyvalue_array(ErlNifEnv* env, ErlFDBFuture* f)
 
     ret = enif_make_list(env, 0);
 
-    for(i = count; i > 0; i--) {
+    for(i = count - 1; i >= 0; i--) {
         buf = enif_make_new_binary(env, kvs[i].key_length, &key);
         memcpy(buf, kvs[i].key, kvs[i].key_length);
         buf = enif_make_new_binary(env, kvs[i].value_length, &val);
