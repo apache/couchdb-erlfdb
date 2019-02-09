@@ -15,6 +15,9 @@
 
 -export([
     pack/1,
+    pack/2,
+    pack_vs/1,
+    pack_vs/2,
     unpack/1,
     range/1,
     compare/2
@@ -86,9 +89,35 @@
 -define(ESCAPE, 16#FF).
 
 
+-define(UNSET_VERSIONSTAMP80, <<16#FFFFFFFFFFFFFFFFFFFF:80>>).
+-define(UNSET_VERSIONSTAMP96, <<16#FFFFFFFFFFFFFFFFFFFF:80, _:16>>).
+
 pack(Tuple) when is_tuple(Tuple) ->
+    pack(Tuple, <<>>).
+
+
+pack(Tuple, Prefix) ->
     Elems = tuple_to_list(Tuple),
-    iolist_to_binary([encode(E, 0) || E <- Elems]).
+    Encoded = [encode(E, 0) || E <- Elems],
+    iolist_to_binary([Prefix | Encoded]).
+
+
+pack_vs(Tuple) ->
+    pack_vs(Tuple, <<>>).
+
+
+pack_vs(Tuple, Prefix) ->
+    Elems = tuple_to_list(Tuple),
+    Encoded = [encode(E, 0) || E <- Elems],
+    case find_incomplete_versionstamp(Encoded) of
+        {found, Pos} ->
+            VsnPos = Pos + size(Prefix),
+            Parts = [Prefix, Encoded, <<VsnPos:32/unsigned-little>>],
+            iolist_to_binary(Parts);
+        {not_found, _} ->
+            E = {erlfdb_tuple_error, missing_incomplete_versionstamp},
+            erlang:error(E)
+    end.
 
 
 unpack(Binary) ->
@@ -370,6 +399,48 @@ dec_float(<<0:1, _:7, _/binary>> = Bin) ->
     erlfdb_float:decode(<< <<(B bxor 16#FF)>> || <<B>> <= Bin >>);
 dec_float(<<Byte:8/integer, Rest/binary>>) ->
     erlfdb_float:decode(<<(Byte bxor 16#80):8/integer, Rest/binary>>).
+
+
+find_incomplete_versionstamp(Items) ->
+    find_incomplete_versionstamp(Items, 0).
+
+
+find_incomplete_versionstamp([], Pos) ->
+    {not_found, Pos};
+find_incomplete_versionstamp([<<?VS80>>, ?UNSET_VERSIONSTAMP80 | Rest], Pos) ->
+    case find_incomplete_versionstamp(Rest, Pos + 11) of
+        {not_found, _} ->
+            {found, Pos + 1};
+        {found, _} ->
+            E = {erlfdb_tuple_error, multiple_incomplete_versionstamps},
+            erlang:error(E)
+    end;
+find_incomplete_versionstamp([<<?VS96>>, ?UNSET_VERSIONSTAMP96 | Rest], Pos) ->
+    case find_incomplete_versionstamp(Rest, Pos + 13) of
+        {not_found, _} ->
+            {found, Pos + 1};
+        {found, _} ->
+            E = {erlfdb_tuple_error, multiple_incomplete_versionstamps},
+            erlang:error(E)
+    end;
+find_incomplete_versionstamp([Item | Rest], Pos) when is_list(Item) ->
+    case find_incomplete_versionstamp(Item, Pos) of
+        {not_found, NewPos} ->
+            find_incomplete_versionstamp(Rest, NewPos);
+        {found, FoundPos} ->
+            % The second versionstamp that is found will not
+            % report a correct version. For now that's fine
+            % as more than one version stamp is an error.
+            case find_incomplete_versionstamp(Rest, Pos) of
+                {not_found, _} ->
+                    {found, FoundPos};
+                {found, _} ->
+                    E = {erlfdb_tuple_error, multiple_incomplete_versionstamps},
+                    erlang:error(E)
+            end
+    end;
+find_incomplete_versionstamp([Bin | Rest], Pos) when is_binary(Bin) ->
+    find_incomplete_versionstamp(Rest, Pos + size(Bin)).
 
 
 compare_elems(A, B) ->
