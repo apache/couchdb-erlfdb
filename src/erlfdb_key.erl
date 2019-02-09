@@ -54,7 +54,7 @@ first_greater_or_equal(Key) when is_binary(Key) ->
 strinc(Key) when is_binary(Key) ->
     Prefix = rstrip_ff(Key),
     PrefixLen = size(Prefix),
-    Head = binary:part(Prefix, PrefixLen - 1),
+    Head = binary:part(Prefix, {0, PrefixLen - 1}),
     Tail = binary:at(Prefix, PrefixLen - 1),
     <<Head/binary, (Tail + 1)>>.
 
@@ -65,6 +65,6 @@ rstrip_ff(<<>>) ->
 rstrip_ff(Key) ->
     KeyLen = size(Key),
     case binary:at(Key, KeyLen - 1) of
-        16#FF -> rstrip_ff(binary:part(Key, KeyLen - 1));
+        16#FF -> rstrip_ff(binary:part(Key, {0, KeyLen - 1}));
         _ -> Key
     end.

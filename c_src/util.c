@@ -28,9 +28,9 @@ erlfdb_erlang_error(ErlNifEnv* env, fdb_error_t err)
 int
 erlfdb_get_boolean(ERL_NIF_TERM term, fdb_bool_t* ret)
 {
-    if(IS_ATOM(term, true) == 0) {
+    if(IS_ATOM(term, true)) {
         *ret = 1;
-    } else if(IS_ATOM(term, false) == 0) {
+    } else if(IS_ATOM(term, false)) {
         *ret = 0;
     } else {
         return 0;
@@ -51,6 +51,7 @@ erlfdb_get_key_selector(
 {
     const ERL_NIF_TERM* tuple;
     int arity;
+    int number_or_equal;
 
     if(!enif_get_tuple(env, selector, &arity, &tuple)) {
         return 0;
@@ -65,26 +66,32 @@ erlfdb_get_key_selector(
     }
 
     if(arity == 2) {
-        if(IS_ATOM(tuple[1], lt) == 0) {
+        if(IS_ATOM(tuple[1], lt)) {
             *or_equal = 0;
             *offset = 0;
-        } else if(IS_ATOM(tuple[1], lteq) == 0) {
+        } else if(IS_ATOM(tuple[1], lteq)) {
             *or_equal = 1;
             *offset = 0;
-        } else if(IS_ATOM(tuple[1], gt) == 0) {
+        } else if(IS_ATOM(tuple[1], gt)) {
             *or_equal = 1;
             *offset = 1;
-        } else if(IS_ATOM(tuple[1], gteq) == 0) {
+        } else if(IS_ATOM(tuple[1], gteq)) {
             *or_equal = 0;
             *offset = 1;
         } else {
             return 0;
         }
     } else if(arity == 3) {
-        if(IS_ATOM(tuple[1], true) == 0) {
+        if(IS_ATOM(tuple[1], true)) {
             *or_equal = 1;
-        } else if(IS_ATOM(tuple[1], false) == 0) {
+        } else if(IS_ATOM(tuple[1], false)) {
             *or_equal = 0;
+        } if(enif_get_int(env, tuple[1], &number_or_equal)) {
+            if(number_or_equal) {
+                *or_equal = 1;
+            } else {
+                *or_equal = 0;
+            }
         } else {
             return 0;
         }

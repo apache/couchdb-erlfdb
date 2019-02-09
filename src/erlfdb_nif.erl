@@ -77,11 +77,12 @@
     {Key::binary(), OrEqual::boolean(), Offset::integer()}.
 
 -type future_result() ::
-    {ok, cluster()} |
-    {ok, database()} |
-    {ok, Version::integer()} |
-    {ok, KeyOrValue::binary()} |
-    {ok, not_found} |
+    cluster() |
+    database() |
+    integer() |
+    binary() |
+    {[{binary(), binary()}], integer(), boolean()} |
+    not_found |
     {error, invalid_future_type}.
 
 -type network_option() ::
@@ -378,12 +379,8 @@ transaction_clear_range({erlfdb_transaction, Tx}, StartKey, EndKey) ->
         Mode::atomic_mode(),
         Operand::atomic_operand()
     ) -> ok.
-transaction_atomic_op({erlfdb_transaction, Tx}, Key, Mode, ErlOperand) ->
-    BinOperand = case ErlOperand of
-        B when is_binary(B) -> B;
-        I when is_integer(I) -> <<I:8/little-signed-integer-unit:8>>
-    end,
-    erlfdb_transaction_atomic_op(Tx, Key, Mode, BinOperand).
+transaction_atomic_op({erlfdb_transaction, Tx}, Key, Mode, OpName) ->
+    erlfdb_transaction_atomic_op(Tx, Key, Mode, OpName).
 
 
 -spec transaction_commit(transaction()) -> future().

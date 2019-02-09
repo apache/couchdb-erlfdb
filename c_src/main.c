@@ -305,9 +305,9 @@ erlfdb_future_get_keyvalue_array(ErlNifEnv* env, ErlFDBFuture* f)
     }
 
     if(more) {
-        return T2(env, ret, ATOM_true);
+        return T3(env, ret, enif_make_int(env, count), ATOM_true);
     } else {
-        return T2(env, ret, ATOM_false);
+        return T3(env, ret, enif_make_int(env, count), ATOM_false);
     }
 }
 
@@ -682,7 +682,7 @@ erlfdb_future_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         return erlfdb_future_get_keyvalue_array(env, f);
     }
 
-    return T2(env, ATOM_error, ATOM_invalid_future_type);
+    return enif_raise_exception(env, ATOM_invalid_future_type);
 }
 
 
@@ -1189,7 +1189,7 @@ erlfdb_transaction_get_range(
     FDBStreamingMode mode;
     int iteration;
     fdb_bool_t snapshot;
-    fdb_bool_t reverse;
+    int reverse;
 
     FDBFuture* future;
     void* res;
@@ -1238,7 +1238,7 @@ erlfdb_transaction_get_range(
         mode = FDB_STREAMING_MODE_LARGE;
     } else if(IS_ATOM(argv[5], serial)) {
         mode = FDB_STREAMING_MODE_SERIAL;
-    } else {
+    } else if(!enif_get_int(env, argv[5], &mode)) {
         return enif_make_badarg(env);
     }
 
@@ -1250,7 +1250,7 @@ erlfdb_transaction_get_range(
         return enif_make_badarg(env);
     }
 
-    if(!erlfdb_get_boolean(argv[8], &reverse)) {
+    if(!enif_get_int(env, argv[8], &reverse)) {
         return enif_make_badarg(env);
     }
 
@@ -1434,33 +1434,33 @@ erlfdb_transaction_atomic_op(
         return enif_make_badarg(env);
     }
 
-    if(IS_ATOM(argv[2], add)) {
-        mtype = FDB_MUTATION_TYPE_ADD;
-    } else if(IS_ATOM(argv[2], bit_and)) {
-        mtype = FDB_MUTATION_TYPE_BIT_AND;
-    } else if(IS_ATOM(argv[2], bit_or)) {
-        mtype = FDB_MUTATION_TYPE_BIT_OR;
-    } else if(IS_ATOM(argv[2], bit_xor)) {
-        mtype = FDB_MUTATION_TYPE_BIT_XOR;
-    } else if(IS_ATOM(argv[2], append_if_fits)) {
-        mtype = FDB_MUTATION_TYPE_APPEND_IF_FITS;
-    } else if(IS_ATOM(argv[2], max)) {
-        mtype = FDB_MUTATION_TYPE_MAX;
-    } else if(IS_ATOM(argv[2], min)) {
-        mtype = FDB_MUTATION_TYPE_MIN;
-    } else if(IS_ATOM(argv[2], byte_min)) {
-        mtype = FDB_MUTATION_TYPE_BYTE_MIN;
-    } else if(IS_ATOM(argv[2], byte_max)) {
-        mtype = FDB_MUTATION_TYPE_BYTE_MAX;
-    } else if(IS_ATOM(argv[2], set_versionstamped_key)) {
-        mtype = FDB_MUTATION_TYPE_SET_VERSIONSTAMPED_KEY;
-    } else if(IS_ATOM(argv[2], set_versionstamped_value)) {
-        mtype = FDB_MUTATION_TYPE_SET_VERSIONSTAMPED_VALUE;
-    } else {
+    if(!enif_inspect_binary(env, argv[2], &param)) {
         return enif_make_badarg(env);
     }
 
-    if(!enif_inspect_binary(env, argv[3], &param)) {
+    if(IS_ATOM(argv[3], add)) {
+        mtype = FDB_MUTATION_TYPE_ADD;
+    } else if(IS_ATOM(argv[3], bit_and)) {
+        mtype = FDB_MUTATION_TYPE_BIT_AND;
+    } else if(IS_ATOM(argv[3], bit_or)) {
+        mtype = FDB_MUTATION_TYPE_BIT_OR;
+    } else if(IS_ATOM(argv[3], bit_xor)) {
+        mtype = FDB_MUTATION_TYPE_BIT_XOR;
+    } else if(IS_ATOM(argv[3], append_if_fits)) {
+        mtype = FDB_MUTATION_TYPE_APPEND_IF_FITS;
+    } else if(IS_ATOM(argv[3], max)) {
+        mtype = FDB_MUTATION_TYPE_MAX;
+    } else if(IS_ATOM(argv[3], min)) {
+        mtype = FDB_MUTATION_TYPE_MIN;
+    } else if(IS_ATOM(argv[3], byte_min)) {
+        mtype = FDB_MUTATION_TYPE_BYTE_MIN;
+    } else if(IS_ATOM(argv[3], byte_max)) {
+        mtype = FDB_MUTATION_TYPE_BYTE_MAX;
+    } else if(IS_ATOM(argv[3], set_versionstamped_key)) {
+        mtype = FDB_MUTATION_TYPE_SET_VERSIONSTAMPED_KEY;
+    } else if(IS_ATOM(argv[3], set_versionstamped_value)) {
+        mtype = FDB_MUTATION_TYPE_SET_VERSIONSTAMPED_VALUE;
+    } else {
         return enif_make_badarg(env);
     }
 
@@ -1733,7 +1733,7 @@ erlfdb_transaction_add_conflict_range(
         return enif_make_badarg(env);
     }
 
-    if(argc != 2) {
+    if(argc != 4) {
         return enif_make_badarg(env);
     }
 
@@ -1750,9 +1750,9 @@ erlfdb_transaction_add_conflict_range(
         return enif_make_badarg(env);
     }
 
-    if(IS_ATOM(argv[3], read) == 0) {
+    if(IS_ATOM(argv[3], read)) {
         rtype = FDB_CONFLICT_RANGE_TYPE_READ;
-    } else if(IS_ATOM(argv[3], write) == 0) {
+    } else if(IS_ATOM(argv[3], write)) {
         rtype = FDB_CONFLICT_RANGE_TYPE_WRITE;
     } else {
         return enif_make_badarg(env);
@@ -1818,11 +1818,11 @@ erlfdb_error_predicate(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         return enif_make_badarg(env);
     }
 
-    if(IS_ATOM(argv[0], retryable) == 0) {
+    if(IS_ATOM(argv[0], retryable)) {
         pred = FDB_ERROR_PREDICATE_RETRYABLE;
-    } else if(IS_ATOM(argv[0], maybe_committed) == 0) {
+    } else if(IS_ATOM(argv[0], maybe_committed)) {
         pred = FDB_ERROR_PREDICATE_MAYBE_COMMITTED;
-    } else if(IS_ATOM(argv[0], retryable_not_committed) == 0) {
+    } else if(IS_ATOM(argv[0], retryable_not_committed)) {
         pred = FDB_ERROR_PREDICATE_RETRYABLE_NOT_COMMITTED;
     } else{
         return enif_make_badarg(env);

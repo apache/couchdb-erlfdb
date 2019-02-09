@@ -46,19 +46,19 @@
 
     % Data retrieval
     get/2,
+    get_ss/2,
+
     get_key/2,
+    get_key_ss/2,
+
     get_range/3,
     get_range/4,
+
     get_range_startswith/2,
     get_range_startswith/3,
 
-    % Snapshot reads
-    get_ss/2,
-    get_key_ss/2,
-    get_range_ss/3,
-    get_range_ss/4,
-    get_range_startswith_ss/2,
-    get_range_startswith_ss/3,
+    fold_range/5,
+    fold_range/6,
 
     % Data modifications
     set/3,
@@ -246,6 +246,10 @@ get(?IS_TX = Tx, Key) ->
     erlfdb_nif:transaction_get(Tx, Key, false).
 
 
+get_ss(?IS_TX = Tx, Key) ->
+    erlfdb_nif:transaction_get(Tx, Key, true).
+
+
 get_key(?IS_DB = Db, Key) ->
     transactional(Db, fun(Tx) ->
         wait(get_key(Tx, Key))
@@ -255,36 +259,23 @@ get_key(?IS_TX = Tx, Key) ->
     erlfdb_nif:transaction_get_key(Tx, Key, false).
 
 
+get_key_ss(?IS_TX = Tx, Key) ->
+    erlfdb_nif:transaction_get_key(Tx, Key, true).
+
+
 get_range(DbOrTx, StartKey, EndKey) ->
     get_range(DbOrTx, StartKey, EndKey, []).
 
 
 get_range(?IS_DB = Db, StartKey, EndKey, Options) ->
     transactional(Db, fun(Tx) ->
-        wait(get_range(Tx, StartKey, EndKey, Options))
+        get_range(Tx, StartKey, EndKey, Options)
     end);
 
 get_range(?IS_TX = Tx, StartKey, EndKey, Options) ->
-    SKSelector = erlfdb_key:to_selector(StartKey),
-    EKSelector = erlfdb_key:to_selector(EndKey),
-    Limit = get_value(Options, limit, 0),
-    TargetBytes = get_value(Options, target_bytes, 0),
-    StreamingMode = get_value(Options, streaming_mode, want_all),
-    Iteration = get_value(Options, iteration, 1),
-    Snapshot = get_value(Options, snapshot, false),
-    ReverseBool = get_value(Options, reverse, false),
-    Reverse = if ReverseBool -> 1; true -> 0 end,
-    erlfdb_nif:transaction_get_range(
-            Tx,
-            SKSelector,
-            EKSelector,
-            Limit,
-            TargetBytes,
-            StreamingMode,
-            Iteration,
-            Snapshot,
-            Reverse
-        ).
+    Fun = fun(Rows, Acc) -> [Rows | Acc] end,
+    Chunks = fold_range_int(Tx, StartKey, EndKey, Fun, [], Options),
+    lists:flatten(lists:reverse(Chunks)).
 
 
 get_range_startswith(DbOrTx, Prefix) ->
@@ -292,33 +283,24 @@ get_range_startswith(DbOrTx, Prefix) ->
 
 
 get_range_startswith(DbOrTx, Prefix, Options) ->
-    SKey = Prefix,
-    EKey = erlfdb_key:strinc(Prefix),
-    get_range(DbOrTx, SKey, EKey, Options).
+    StartKey = Prefix,
+    EndKey = erlfdb_key:strinc(Prefix),
+    get_range(DbOrTx, StartKey, EndKey, Options).
 
 
-get_ss(?IS_TX = Tx, Key) ->
-    erlfdb_nif:transaction_get(Tx, Key, true).
+fold_range(DbOrTx, StartKey, EndKey, Fun, Acc) ->
+    fold_range(DbOrTx, StartKey, EndKey, Fun, Acc, []).
 
 
-get_key_ss(?IS_TX = Tx, Key) ->
-    erlfdb_nif:transaction_get_key(Tx, Key, true).
+fold_range(?IS_DB = Db, StartKey, EndKey, Fun, Acc, Options) ->
+    transactional(Db, fun(Tx) ->
+        fold_range(Tx, StartKey, EndKey, Fun, Acc, Options)
+    end);
 
-
-get_range_ss(?IS_TX = Tx, StartKey, EndKey) ->
-    get_range(Tx, StartKey, EndKey, [{snapshot, true}]).
-
-
-get_range_ss(?IS_TX = Tx, StartKey, EndKey, Options) ->
-    get_range(Tx, StartKey, EndKey, [{snapshot, true} | Options]).
-
-
-get_range_startswith_ss(?IS_TX = Tx, Prefix) ->
-    get_range_startswith(Tx, Prefix, [{snapshot, true}]).
-
-
-get_range_startswith_ss(?IS_TX = Tx, Prefix, Options) ->
-    get_range_startswith(Tx, Prefix, [{snapshot, true} | Options]).
+fold_range(?IS_TX = Tx, StartKey, EndKey, Fun, Acc, Options) ->
+    fold_range_int(Tx, StartKey, EndKey, fun(Rows, InnerAcc) ->
+        lists:foldl(Fun, InnerAcc, Rows)
+    end, Acc, Options).
 
 
 set(?IS_DB = Db, Key, Value) ->
@@ -495,6 +477,100 @@ error_predicate(Predicate, {erlfdb_error, ErrorCode}) ->
 
 error_predicate(Predicate, ErrorCode) ->
     erlfdb_nif:error_predicate(Predicate, ErrorCode).
+
+
+-record(fold_st, {
+    tx,
+    start_key,
+    end_key,
+    limit,
+    target_bytes,
+    streaming_mode,
+    iteration,
+    snapshot,
+    reverse
+}).
+
+
+fold_range_int(?IS_TX = Tx, StartKey, EndKey, Fun, Acc, Options) ->
+    Reverse = case get_value(Options, reverse, false) of
+        true -> 1;
+        false -> 0;
+        I when is_integer(I) -> I
+    end,
+    St = #fold_st{
+        tx = Tx,
+        start_key = erlfdb_key:to_selector(StartKey),
+        end_key = erlfdb_key:to_selector(EndKey),
+        limit = get_value(Options, limit, 0),
+        target_bytes = get_value(Options, target_bytes, 0),
+        streaming_mode = get_value(Options, streaming_mode, want_all),
+        iteration = get_value(Options, iteration, 1),
+        snapshot = get_value(Options, snapshot, false),
+        reverse = Reverse
+    },
+    fold_range_int(St, Fun, Acc).
+
+
+fold_range_int(#fold_st{} = St, Fun, Acc) ->
+    #fold_st{
+        tx = Tx,
+        start_key = StartKey,
+        end_key = EndKey,
+        limit = Limit,
+        target_bytes = TargetBytes,
+        streaming_mode = StreamingMode,
+        iteration = Iteration,
+        snapshot = Snapshot,
+        reverse = Reverse
+    } = St,
+
+    Future = erlfdb_nif:transaction_get_range(
+            Tx,
+            StartKey,
+            EndKey,
+            Limit,
+            TargetBytes,
+            StreamingMode,
+            Iteration,
+            Snapshot,
+            Reverse
+        ),
+
+    {RawRows, Count, HasMore} = wait(Future),
+
+    Count = length(RawRows),
+
+    % If our limit is within the current set of
+    % rows we need to truncate the list
+    Rows = if Limit == 0 orelse Limit > Count -> RawRows; true ->
+        lists:sublist(RawRows, Limit)
+    end,
+
+    % Invoke our callback to update the accumulator
+    NewAcc = if Rows == [] -> Acc; true ->
+        Fun(Rows, Acc)
+    end,
+
+    % Determine if we have more rows to iterate
+    Recurse = (Rows /= []) and (Limit == 0 orelse Limit > Count) and HasMore,
+
+    if not Recurse -> NewAcc; true ->
+        LastKey = element(1, lists:last(Rows)),
+        {NewStartKey, NewEndKey} = case Reverse /= 0 of
+            true ->
+                {StartKey, erlfdb_key:first_greater_or_equal(LastKey)};
+            false ->
+                {erlfdb_key:first_greater_than(LastKey), EndKey}
+        end,
+        NewSt = St#fold_st{
+            start_key = NewStartKey,
+            end_key = NewEndKey,
+            limit = if Limit == 0 -> 0; true -> Limit - Count end,
+            iteration = Iteration + 1
+        },
+        fold_range_int(NewSt, Fun, NewAcc)
+    end.
 
 
 get_value(Options, Name, Default) ->

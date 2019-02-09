@@ -142,20 +142,26 @@ encode(true, _) ->
 encode({utf8, Bin}, _) when is_binary(Bin) ->
     [<<?STRING>>, enc_null_terminated(Bin)];
 
-encode({float, Float}, _) when is_float(Float) ->
-    [<<?FLOAT>>, enc_float(Float, 32)];
+encode({float, F} = Float, _) when is_float(F) ->
+    [<<?FLOAT>>, enc_float(Float)];
+
+encode({float, _, _F} = Float, _) ->
+    [<<?FLOAT>>, enc_float(Float)];
+
+encode({double, _, _D} = Double, _) ->
+    [<<?DOUBLE>>, enc_float(Double)];
 
 encode({uuid, Bin}, _) when is_binary(Bin), size(Bin) == 16 ->
     [<<?UUID>>, Bin];
 
 encode({id64, Int}, _) ->
-    [<<?ID64>>, <<Int:64>>];
+    [<<?ID64>>, <<Int:64/big>>];
 
 encode({versionstamp, Id, Batch}, _) ->
-    [<<?VS80>>, <<Id:64, Batch:16>>];
+    [<<?VS80>>, <<Id:64/big, Batch:16/big>>];
 
 encode({versionstamp, Id, Batch, Tx}, _) ->
-    [<<?VS96>>, <<Id:64, Batch:16, Tx:16>>];
+    [<<?VS96>>, <<Id:64/big, Batch:16/big, Tx:16/big>>];
 
 encode(Bin, _Depth) when is_binary(Bin) ->
     [<<?BYTES>>, enc_null_terminated(Bin)];
@@ -174,7 +180,7 @@ encode(Int, _Depth) when is_integer(Int), Int < 0 ->
         6 -> [<<?NEG_INT_6>>, Bin2];
         7 -> [<<?NEG_INT_7>>, Bin2];
         8 -> [<<?NEG_INT_8>>, Bin2];
-        N when N =< 255 -> [<<?NEG_INT_9P, N>>, Bin2]
+        N when N =< 255 -> [<<?NEG_INT_9P, (N bxor 16#FF)>>, Bin2]
     end;
 
 encode(0, _) ->
@@ -195,12 +201,12 @@ encode(Int, _Depth) when is_integer(Int), Int > 0 ->
     end;
 
 encode(Double, _) when is_float(Double) ->
-    [<<?DOUBLE>>, enc_float(Double, 64)];
+    [<<?DOUBLE>>, enc_float(Double)];
 
 encode(Tuple, Depth) when is_tuple(Tuple) ->
     Elems = tuple_to_list(Tuple),
     Encoded = [encode(E, Depth + 1) || E <- Elems],
-    [?NESTED, Encoded, ?NULL].
+    [<<?NESTED>>, Encoded, <<?NULL>>].
 
 
 enc_null_terminated(Bin) ->
@@ -210,7 +216,7 @@ enc_null_terminated(Bin) ->
 enc_null_terminated(Bin, Offset) ->
     case Bin of
         <<Head:Offset/binary>> ->
-            [Head, ?NULL];
+            [Head, <<?NULL>>];
         <<Head:Offset/binary, ?NULL, Tail/binary>> ->
             [Head, <<?NULL, ?ESCAPE>> | enc_null_terminated(Tail, 0)];
         <<_Head:Offset/binary, _, _Tail/binary>> = Bin ->
@@ -218,13 +224,14 @@ enc_null_terminated(Bin, Offset) ->
     end.
 
 
-enc_float(Float, Size) when Float >= 0 ->
-    <<0:1, B:7, Rest/binary>> = <<Float:Size/float>>,
-    <<1:1, B:7, Rest/binary>>;
-
-enc_float(Float, Size) ->
-    Bin = <<Float:Size/float>>,
-    << <<(B bxor 16#FF)>> || <<B>> <= Bin >>.
+enc_float(Float) ->
+    Bin = erlfdb_float:encode(Float),
+    case Bin of
+        <<0:1, B:7, Rest/binary>> ->
+            <<1:1, B:7, Rest/binary>>;
+        <<1:1, _:7, _/binary>> ->
+            << <<(B bxor 16#FF)>> || <<B>> <= Bin >>
+    end.
 
 
 decode(<<>>, 0) ->
@@ -288,11 +295,11 @@ decode(<<?POS_INT_9P, Size:8/unsigned-integer, Rest/binary>>, Depth) ->
 
 decode(<<?FLOAT, Raw:4/binary, Rest/binary>>, Depth) ->
     {Values, Tail} = decode(Rest, Depth),
-    {[{float, dec_float(Raw, 32)} | Values], Tail};
+    {[dec_float(Raw) | Values], Tail};
 
 decode(<<?DOUBLE, Raw:8/binary, Rest/binary>>, Depth) ->
     {Values, Tail} = decode(Rest, Depth),
-    {[dec_float(Raw, 64) | Values], Tail};
+    {[dec_float(Raw) | Values], Tail};
 
 decode(<<?FALSE, Rest/binary>>, Depth) ->
     {Values, Tail} = decode(Rest, Depth),
@@ -306,15 +313,15 @@ decode(<<?UUID, UUID:16/binary, Rest/binary>>, Depth) ->
     {Values, Tail} = decode(Rest, Depth),
     {[{uuid, UUID} | Values], Tail};
 
-decode(<<?ID64, Id:64, Rest/binary>>, Depth) ->
+decode(<<?ID64, Id:64/big, Rest/binary>>, Depth) ->
     {Values, Tail} = decode(Rest, Depth),
     {[{id64, Id} | Values], Tail};
 
-decode(<<?VS80, Id:64, Batch:16, Rest/binary>>, Depth) ->
+decode(<<?VS80, Id:64/big, Batch:16/big, Rest/binary>>, Depth) ->
     {Values, Tail} = decode(Rest, Depth),
     {[{versionstamp, Id, Batch} | Values], Tail};
 
-decode(<<?VS96, Id:64, Batch:16, Tx:16, Rest/binary>>, Depth) ->
+decode(<<?VS96, Id:64/big, Batch:16/big, Tx:16/big, Rest/binary>>, Depth) ->
     {Values, Tail} = decode(Rest, Depth),
     {[{versionstamp, Id, Batch, Tx} | Values], Tail}.
 
@@ -359,12 +366,10 @@ dec_pos_int(Bin, Size, Depth) ->
     end.
 
 
-dec_float(<<0:1, _:7, _/binary>> = Bin, Size) ->
-    <<Val:Size/float>> = << <<(B bxor 16#FF)>> || <<B>> <= Bin >>,
-    Val;
-dec_float(<<Byte:8/integer, Rest/binary>>, Size) ->
-    <<Val:Size/float>> = <<(Byte band 16#7F):8/integer, Rest/binary>>,
-    Val.
+dec_float(<<0:1, _:7, _/binary>> = Bin) ->
+    erlfdb_float:decode(<< <<(B bxor 16#FF)>> || <<B>> <= Bin >>);
+dec_float(<<Byte:8/integer, Rest/binary>>) ->
+    erlfdb_float:decode(<<(Byte bxor 16#80):8/integer, Rest/binary>>).
 
 
 compare_elems(A, B) ->
@@ -391,10 +396,14 @@ compare_elems(A, B) ->
     end.
 
 
-compare_floats({float, F1}, {float, F2}) ->
-    compare_floats(F1, F2);
-compare_floats(F1, F2) when is_float(F1), is_float(F2) ->
-    pack({F1}) < pack({F2}).
+compare_floats(F1, F2) ->
+    B1 = pack({F1}),
+    B2 = pack({F2}),
+    if
+        B1 < B2 -> -1;
+        B1 > B2 -> 1;
+        true -> 0
+    end.
 
 
 code_for(null) -> ?NULL;
@@ -402,7 +411,9 @@ code_for(<<_/binary>>) -> ?BYTES;
 code_for({utf8, <<_/binary>>}) -> ?STRING;
 code_for(I) when is_integer(I) -> ?ZERO;
 code_for({float, F}) when is_float(F) -> ?FLOAT;
+code_for({float, _, B}) when is_binary(B) -> ?FLOAT;
 code_for(F) when is_float(F) -> ?DOUBLE;
+code_for({double, _, B}) when is_binary(B) -> ?DOUBLE;
 code_for(false) -> ?FALSE;
 code_for(true) -> ?TRUE;
 code_for({uuid, <<_:16/binary>>}) -> ?UUID;
@@ -453,6 +464,30 @@ fdb_vectors_test() ->
         ?assertEqual(Expect, pack(Test)),
         ?assertEqual(Test, unpack(pack(Test)))
     end, Cases).
+
+
+bindingstester_discoveries_test() ->
+    Pairs = [
+        {<<33,134,55,204,184,171,21,15,128>>, {1.048903115625475e-278}}
+    ],
+    lists:foreach(fun({Packed, Unpacked}) ->
+        ?assertEqual(Packed, pack(Unpacked)),
+        ?assertEqual(Unpacked, unpack(Packed))
+    end, Pairs),
+
+    PackUnpackCases = [
+        {-87469399449579948399912777925908893746277401541675257432930}
+    ],
+    lists:foreach(fun(Test) ->
+        ?assertEqual(Test, unpack(pack(Test)))
+    end, PackUnpackCases),
+
+    UnpackPackCases = [
+        <<33,134,55,204,184,171,21,15,128>>
+    ],
+    lists:foreach(fun(Test) ->
+        ?assertEqual(Test, pack(unpack(Test)))
+    end, UnpackPackCases).
 
 
 -endif.
