@@ -163,7 +163,7 @@ stack_pop_with_idx(Pid, Count) ->
                     end
                 catch error:{erlfdb_error, Code} ->
                     CodeBin = integer_to_binary(Code),
-                    ErrBin = erlfdb_layer_tuple:pack({<<"ERROR">>, CodeBin}),
+                    ErrBin = erlfdb_tuple:pack({<<"ERROR">>, CodeBin}),
                     {Idx, ErrBin}
                 end;
             _ ->
@@ -205,7 +205,7 @@ stack_push_range(#st{stack = Pid, index = Idx}, Results, PrefixFilter) ->
         (_, Acc) ->
             Acc
     end, [], Results),
-    Value = erlfdb_layer_tuple:pack(list_to_tuple(List)),
+    Value = erlfdb_tuple:pack(list_to_tuple(List)),
     stack_push(Pid, {Idx, Value}).
 
 
@@ -270,9 +270,9 @@ log_stack(_Db, _Prefix, []) ->
 log_stack(Db, Prefix, Items) when length(Items) =< 100 ->
     erlfdb:transactional(Db, fun(Tx) ->
         lists:foreach(fun({StackPos, {Idx, Item}}) ->
-            KeyTail = erlfdb_layer_tuple:pack({StackPos, Idx}),
+            KeyTail = erlfdb_tuple:pack({StackPos, Idx}),
             Key = <<Prefix/binary, KeyTail/binary>>,
-            RawVal = erlfdb_layer_tuple:pack({Item}),
+            RawVal = erlfdb_tuple:pack({Item}),
             Val = case size(RawVal) > 40000 of
                 true -> binary:part(RawVal, {0, 40000});
                 false -> RawVal
@@ -298,7 +298,7 @@ wait_for_empty(Db, Prefix) ->
 
 
 init_run_loop(Db, Prefix, TxMgr) ->
-    {StartKey, EndKey} = erlfdb_layer_tuple:range({Prefix}),
+    {StartKey, EndKey} = erlfdb_tuple:range({Prefix}),
     St = #st{
         db = Db,
         tx_mgr = TxMgr,
@@ -335,7 +335,7 @@ run_loop(#st{} = St) ->
 
     [{_InstrKey, InstrVal} | RestStuctions] = Instructions,
 
-    OpTuple = erlfdb_layer_tuple:unpack(InstrVal),
+    OpTuple = erlfdb_tuple:unpack(InstrVal),
     {utf8, Op} = element(1, OpTuple),
 
     %% if Op == <<"PUSH">> orelse Op == <<"SWAP">> -> ok; true ->
@@ -364,7 +364,7 @@ run_loop(#st{} = St) ->
         #st{} = execute(TxObj, PreSt, OpName)
     catch error:{erlfdb_error, Code} ->
         CodeBin = integer_to_binary(Code),
-        ErrBin = erlfdb_layer_tuple:pack({<<"ERROR">>, CodeBin}),
+        ErrBin = erlfdb_tuple:pack({<<"ERROR">>, CodeBin}),
         stack_push(St#st.stack, {Index, ErrBin}),
         PreSt
     end,
@@ -645,7 +645,7 @@ execute(TxObj, St, <<"GET_VERSIONSTAMP">>) ->
 execute(_TxObj, St, <<"TUPLE_PACK">>) ->
     Count = stack_pop(St),
     Elems = stack_pop(St, Count),
-    Val = erlfdb_layer_tuple:pack(list_to_tuple(Elems)),
+    Val = erlfdb_tuple:pack(list_to_tuple(Elems)),
     stack_push(St, Val),
     St;
 
@@ -654,7 +654,7 @@ execute(_TxObj, St, <<"TUPLE_PACK_WITH_VERSIONSTAMP">>) ->
     Count = stack_pop(St),
     Items = stack_pop(St, Count),
     try
-        Packed = erlfdb_layer_tuple:pack_vs(list_to_tuple(Items), Prefix),
+        Packed = erlfdb_tuple:pack_vs(list_to_tuple(Items), Prefix),
         stack_push(St, <<"OK">>),
         stack_push(St, Packed)
     catch
@@ -667,28 +667,28 @@ execute(_TxObj, St, <<"TUPLE_PACK_WITH_VERSIONSTAMP">>) ->
 
 execute(_TxObj, St, <<"TUPLE_UNPACK">>) ->
     Bin = stack_pop(St),
-    Tuple = erlfdb_layer_tuple:unpack(Bin),
+    Tuple = erlfdb_tuple:unpack(Bin),
     lists:foreach(fun(Item) ->
-        stack_push(St, erlfdb_layer_tuple:pack({Item}))
+        stack_push(St, erlfdb_tuple:pack({Item}))
     end, tuple_to_list(Tuple)),
     St;
 
 execute(_TxObj, St, <<"TUPLE_SORT">>) ->
     Count = stack_pop(St),
     Elems = stack_pop(St, Count),
-    Items = [erlfdb_layer_tuple:unpack(E) || E <- Elems],
+    Items = [erlfdb_tuple:unpack(E) || E <- Elems],
     Sorted = lists:sort(fun(A, B) ->
-        erlfdb_layer_tuple:compare(A, B) =< 0
+        erlfdb_tuple:compare(A, B) =< 0
     end, Items),
     lists:foreach(fun(Item) ->
-        stack_push(St, erlfdb_layer_tuple:pack(Item))
+        stack_push(St, erlfdb_tuple:pack(Item))
     end, Sorted),
     St;
 
 execute(_TxObj, St, <<"TUPLE_RANGE">>) ->
     Count = stack_pop(St),
     Items = stack_pop(St, Count),
-    {Start, End} = erlfdb_layer_tuple:range(list_to_tuple(Items)),
+    {Start, End} = erlfdb_tuple:range(list_to_tuple(Items)),
     stack_push(St, Start),
     stack_push(St, End),
     St;
