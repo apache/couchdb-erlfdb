@@ -376,11 +376,17 @@ transaction_clear_range({erlfdb_transaction, Tx}, StartKey, EndKey) ->
 -spec transaction_atomic_op(
         transaction(),
         Key::binary(),
-        Mode::atomic_mode(),
-        Operand::atomic_operand()
+        Operand::atomic_operand(),
+        Mode::atomic_mode()
     ) -> ok.
-transaction_atomic_op({erlfdb_transaction, Tx}, Key, Mode, OpName) ->
-    erlfdb_transaction_atomic_op(Tx, Key, Mode, OpName).
+transaction_atomic_op({erlfdb_transaction, Tx}, Key, Operand, OpName) ->
+    BinOperand = case Operand of
+        Bin when is_binary(Bin) ->
+            Bin;
+        Int when is_integer(Int) ->
+            <<Int:64/little>>
+    end,
+    erlfdb_transaction_atomic_op(Tx, Key, BinOperand, OpName).
 
 
 -spec transaction_commit(transaction()) -> future().
