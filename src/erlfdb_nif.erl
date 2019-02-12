@@ -195,7 +195,7 @@ future_cancel({erlfdb_future, _Ref, Ft}) ->
 
 
 -spec future_is_ready(future()) -> boolean().
-future_is_ready({elfdb_future, _Ref, Ft}) ->
+future_is_ready({erlfdb_future, _Ref, Ft}) ->
     erlfdb_future_is_ready(Ft).
 
 
