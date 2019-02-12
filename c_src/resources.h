@@ -63,6 +63,7 @@ typedef struct _ErlFDBDatabase
 typedef struct _ErlFDBTransaction
 {
     FDBTransaction* transaction;
+    ERL_NIF_TERM owner;
 } ErlFDBTransaction;
 
 
@@ -71,6 +72,9 @@ void erlfdb_future_dtor(ErlNifEnv* env, void* obj);
 void erlfdb_cluster_dtor(ErlNifEnv* env, void* obj);
 void erlfdb_database_dtor(ErlNifEnv* env, void* obj);
 void erlfdb_transaction_dtor(ErlNifEnv* env, void* obj);
+
+
+int erlfdb_transaction_is_owner(ErlNifEnv* env, ErlFDBTransaction* t);
 
 
 #endif // Included resources.h

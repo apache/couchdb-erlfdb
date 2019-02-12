@@ -209,49 +209,13 @@ stack_push_range(#st{stack = Pid, index = Idx}, Results, PrefixFilter) ->
     stack_push(Pid, {Idx, Value}).
 
 
-tx_manager_init(Db) ->
-    erlang:spawn_link(fun() ->
-        Tid = ets:new(tx_table, []),
-        tx_manager_loop(Db, Tid)
-    end).
+get_transaction(TxName) ->
+    get({'$erlfdb_tx', TxName}).
 
 
-tx_manager_loop(Db, Tid) ->
-    receive
-        {From, get, TxName} ->
-            case ets:lookup(Tid, TxName) of
-                [] -> From ! {self(), undefined};
-                [{_, Tx}] -> From ! {self(), Tx}
-            end;
-        {From, new, TxName} ->
-            Tx = erlfdb:create_transaction(Db),
-            true = ets:insert(Tid, {TxName, Tx}),
-            From ! {self(), Tx};
-        {From, switch, TxName} ->
-            case ets:lookup(Tid, TxName) of
-                [] ->
-                    ets:insert(Tid, {TxName, erlfdb:create_transaction(Db)});
-                [_] ->
-                    ok
-            end,
-            From ! {self(), ok}
-    end,
-    tx_manager_loop(Db, Tid).
-
-
-get_transaction(TxPid, TxName) ->
-    TxPid ! {self(), get, TxName},
-    receive {TxPid, Tx} -> Tx end.
-
-
-new_transaction(TxPid, TxName) ->
-    TxPid ! {self(), new, TxName},
-    receive {TxPid, Tx} -> Tx end.
-
-
-switch_transaction(TxPid, TxName) ->
-    TxPid ! {self(), switch, TxName},
-    receive {TxPid, ok} -> ok end.
+new_transaction(Db, TxName) ->
+    Tx = erlfdb:create_transaction(Db),
+    put({'$erlfdb_tx', TxName}, Tx).
 
 
 has_suffix(Subject, Suffix) ->
@@ -297,11 +261,10 @@ wait_for_empty(Db, Prefix) ->
     end).
 
 
-init_run_loop(Db, Prefix, TxMgr) ->
+init_run_loop(Db, Prefix) ->
     {StartKey, EndKey} = erlfdb_tuple:range({Prefix}),
     St = #st{
         db = Db,
-        tx_mgr = TxMgr,
         tx_name = Prefix,
         instructions = erlfdb:get_range(Db, StartKey, EndKey),
         op_tuple = undefined,
@@ -327,7 +290,6 @@ run_loop(#st{instructions = []} = St) ->
 run_loop(#st{} = St) ->
     #st{
         db = Db,
-        tx_mgr = TxMgr,
         tx_name = TxName,
         instructions = Instructions,
         index = Index
@@ -357,7 +319,7 @@ run_loop(#st{} = St) ->
     },
 
     TxObj = if IsDb -> Db; true ->
-        get_transaction(TxMgr, TxName)
+        get_transaction(TxName)
     end,
 
     PostSt = try
@@ -427,12 +389,11 @@ execute(_TxObj, St, <<"WAIT_FUTURE">>) ->
     St;
 
 execute(_TxObj, St, <<"NEW_TRANSACTION">>) ->
-    new_transaction(St#st.tx_mgr, St#st.tx_name),
+    new_transaction(St#st.db, St#st.tx_name),
     St;
 
 execute(_TxObj, St, <<"USE_TRANSACTION">>) ->
     TxName = stack_pop(St),
-    switch_transaction(St#st.tx_mgr, TxName),
     St#st{
         tx_name = TxName
     };
@@ -716,11 +677,10 @@ execute(_TxObj, St, <<"DECODE_DOUBLE">>) ->
 execute(_TxObj, St, <<"START_THREAD">>) ->
     #st{
         db = Db,
-        tx_mgr = TxMgr,
         pids = Pids
     } = St,
     Prefix = stack_pop(St),
-    Pid = spawn_monitor(fun() -> init_run_loop(Db, Prefix, TxMgr) end),
+    Pid = spawn_monitor(fun() -> init_run_loop(Db, Prefix) end),
     St#st{pids = [Pid | Pids]};
 
 execute(_TxObj, St, <<"WAIT_EMPTY">>) ->
@@ -749,5 +709,4 @@ main([Prefix, APIVsn, ClusterFileStr]) ->
 
     application:set_env(erlfdb, api_version, list_to_integer(APIVsn)),
     Db = erlfdb:open(iolist_to_binary(ClusterFileStr)),
-    TxMgr = tx_manager_init(Db),
-    init_run_loop(Db, iolist_to_binary(Prefix), TxMgr).
+    init_run_loop(Db, iolist_to_binary(Prefix)).

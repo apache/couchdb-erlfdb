@@ -833,6 +833,7 @@ erlfdb_database_create_transaction(
     ErlFDBDatabase* d;
     ErlFDBTransaction* t;
     FDBTransaction* transaction;
+    ErlNifPid pid;
     ERL_NIF_TERM ret;
     void* res;
     fdb_error_t err;
@@ -857,6 +858,9 @@ erlfdb_database_create_transaction(
 
     t = enif_alloc_resource(ErlFDBTransactionRes, sizeof(ErlFDBTransaction));
     t->transaction = transaction;
+
+    enif_self(env, &pid);
+    t->owner = enif_make_pid(env, &pid);
 
     ret = enif_make_resource(env, t);
     enif_release_resource(t);
@@ -890,6 +894,10 @@ erlfdb_transaction_set_option(
         return enif_make_badarg(env);
     }
     t = (ErlFDBTransaction*) res;
+
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
 
     if(IS_ATOM(argv[1], causal_write_risky)) {
         option = FDB_TR_OPTION_CAUSAL_WRITE_RISKY;
@@ -988,6 +996,10 @@ erlfdb_transaction_set_read_version(
     }
     t = (ErlFDBTransaction*) res;
 
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
+
     if(!enif_get_int64(env, argv[1], &erl_vsn)) {
         return enif_make_badarg(env);
     }
@@ -1025,6 +1037,10 @@ erlfdb_transaction_get_read_version(
     }
     t = (ErlFDBTransaction*) res;
 
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
+
     future = fdb_transaction_get_read_version(t->transaction);
 
     return erlfdb_create_future(env, future, ErlFDB_FT_VERSION);
@@ -1057,6 +1073,10 @@ erlfdb_transaction_get(
         return enif_make_badarg(env);
     }
     t = (ErlFDBTransaction*) res;
+
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
 
     if(!enif_inspect_binary(env, argv[1], &key)) {
         return enif_make_badarg(env);
@@ -1106,6 +1126,10 @@ erlfdb_transaction_get_key(
     }
     t = (ErlFDBTransaction*) res;
 
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
+
     if(!erlfdb_get_key_selector(env, argv[1], &key, &or_equal, &offset)) {
         return enif_make_badarg(env);
     }
@@ -1152,6 +1176,10 @@ erlfdb_transaction_get_addresses_for_key(
         return enif_make_badarg(env);
     }
     t = (ErlFDBTransaction*) res;
+
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
 
     if(!enif_inspect_binary(env, argv[1], &key)) {
         return enif_make_badarg(env);
@@ -1207,6 +1235,9 @@ erlfdb_transaction_get_range(
     }
     t = (ErlFDBTransaction*) res;
 
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
 
     if(!erlfdb_get_key_selector(env, argv[1], &skey, &sor_equal, &soffset)) {
         return enif_make_badarg(env);
@@ -1302,6 +1333,10 @@ erlfdb_transaction_set(
     }
     t = (ErlFDBTransaction*) res;
 
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
+
     if(!enif_inspect_binary(env, argv[1], &key)) {
         return enif_make_badarg(env);
     }
@@ -1347,6 +1382,10 @@ erlfdb_transaction_clear(
     }
     t = (ErlFDBTransaction*) res;
 
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
+
     if(!enif_inspect_binary(env, argv[1], &key)) {
         return enif_make_badarg(env);
     }
@@ -1382,6 +1421,10 @@ erlfdb_transaction_clear_range(
         return enif_make_badarg(env);
     }
     t = (ErlFDBTransaction*) res;
+
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
 
     if(!enif_inspect_binary(env, argv[1], &skey)) {
         return enif_make_badarg(env);
@@ -1429,6 +1472,10 @@ erlfdb_transaction_atomic_op(
         return enif_make_badarg(env);
     }
     t = (ErlFDBTransaction*) res;
+
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
 
     if(!enif_inspect_binary(env, argv[1], &key)) {
         return enif_make_badarg(env);
@@ -1501,6 +1548,10 @@ erlfdb_transaction_commit(
     }
     t = (ErlFDBTransaction*) res;
 
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
+
     future = fdb_transaction_commit(t->transaction);
 
     return erlfdb_create_future(env, future, ErlFDB_FT_VOID);
@@ -1533,6 +1584,10 @@ erlfdb_transaction_get_committed_version(
         return enif_make_badarg(env);
     }
     t = (ErlFDBTransaction*) res;
+
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
 
     err = fdb_transaction_get_committed_version(t->transaction, &fdb_vsn);
     if(err != 0) {
@@ -1569,6 +1624,10 @@ erlfdb_transaction_get_versionstamp(
     }
     t = (ErlFDBTransaction*) res;
 
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
+
     future = fdb_transaction_get_versionstamp(t->transaction);
 
     return erlfdb_create_future(env, future, ErlFDB_FT_KEY);
@@ -1600,6 +1659,10 @@ erlfdb_transaction_watch(
         return enif_make_badarg(env);
     }
     t = (ErlFDBTransaction*) res;
+
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
 
     if(!enif_inspect_binary(env, argv[1], &key)) {
         return enif_make_badarg(env);
@@ -1642,6 +1705,10 @@ erlfdb_transaction_on_error(
     }
     t = (ErlFDBTransaction*) res;
 
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
+
     if(!enif_get_int(env, argv[1], &erl_err)) {
         return enif_make_badarg(env);
     }
@@ -1678,6 +1745,10 @@ erlfdb_transaction_reset(
     }
     t = (ErlFDBTransaction*) res;
 
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
+
     fdb_transaction_reset(t->transaction);
 
     return ATOM_ok;
@@ -1707,6 +1778,10 @@ erlfdb_transaction_cancel(
         return enif_make_badarg(env);
     }
     t = (ErlFDBTransaction*) res;
+
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
 
     fdb_transaction_cancel(t->transaction);
 
@@ -1741,6 +1816,10 @@ erlfdb_transaction_add_conflict_range(
         return enif_make_badarg(env);
     }
     t = (ErlFDBTransaction*) res;
+
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
 
     if(!enif_inspect_binary(env, argv[1], &skey)) {
         return enif_make_badarg(env);

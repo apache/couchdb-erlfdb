@@ -117,3 +117,16 @@ erlfdb_transaction_dtor(ErlNifEnv* env, void* obj)
         fdb_transaction_destroy(t->transaction);
     }
 }
+
+
+int
+erlfdb_transaction_is_owner(ErlNifEnv* env, ErlFDBTransaction* t)
+{
+    ErlNifPid pid;
+    ERL_NIF_TERM self;
+
+    enif_self(env, &pid);
+    self = enif_make_pid(env, &pid);
+
+    return enif_compare(t->owner, self) == 0;
+}
