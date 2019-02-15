@@ -23,16 +23,19 @@
 ]).
 
 
+-include("erlfdb.hrl").
+
+
 -record(erlfdb_hca, {
     counters,
     recent
 }).
 
 
-create(Subspace) ->
+create(Prefix) ->
     #erlfdb_hca{
-        counters = erlfdb_subspace:add(Subspace, 0),
-        recent = erlfdb_subspace:add(Subspace, 1)
+        counters = ?ERLFDB_EXTEND(Prefix, 0),
+        recent = ?ERLFDB_EXTEND(Prefix, 1)
     }.
 
 
@@ -52,7 +55,7 @@ current_start(HCA, Tx) ->
     #erlfdb_hca{
         counters = Counters
     } = HCA,
-    {CRangeStart, CRangeEnd} = erlfdb_subspace:range(Counters),
+    {CRangeStart, CRangeEnd} = ?ERLFDB_RANGE(Counters),
     Options = [
         {snapshot, true},
         {reverse, true},
@@ -63,7 +66,7 @@ current_start(HCA, Tx) ->
         [] ->
             0;
         [{CounterKey, _}] ->
-            {Start} = erlfdb_subspace:unpack(Counters, CounterKey),
+            {Start} = ?ERLFDB_EXTRACT(Counters, CounterKey),
             Start
     end.
 
@@ -77,7 +80,7 @@ range(HCA, Tx, Start, WindowAdvanced) ->
         clear_previous_window(HCA, Tx, Start)
     end,
 
-    CounterKey = erlfdb_subspace:pack(Counters, {Start}),
+    CounterKey = ?ERLFDB_EXTEND(Counters, Start),
     erlfbd:add(Tx, CounterKey, 1),
 
     Count = case erlfdb:wait(erlfdb:get_ss(Tx, CounterKey)) of
@@ -100,7 +103,7 @@ search_candidate(HCA, Tx, {Start, WindowSize}) ->
 
     % -1 because random:uniform is 1 =< X $=< WindowSize
     Candidate = Start + rand:uniform(WindowSize) - 1,
-    CandidateValueKey = erlfdb_subspace:pack(Recent, {Candidate}),
+    CandidateValueKey = ?ERLFDB_EXTEND(Recent, Candidate),
 
     Options = [
         {snapshot, true},
@@ -108,7 +111,7 @@ search_candidate(HCA, Tx, {Start, WindowSize}) ->
         {streaming_mode, exact},
         {limit, 1}
     ],
-    {CRangeStart, CRangeEnd} = erlfdb_subspace:range(Counters),
+    {CRangeStart, CRangeEnd} = ?ERLFDB_RANGE(Counters),
 
     CFuture = erlfdb:get_range(Tx, CRangeStart, CRangeEnd, Options),
     CVFuture = erlfdb:get(Tx, CandidateValueKey),
@@ -121,7 +124,7 @@ search_candidate(HCA, Tx, {Start, WindowSize}) ->
     % Check that we're still in the same counter window
     case LatestCounter of
         [{CounterKey, _}] ->
-            {LStart} = erlfdb_subspace:unpack(Counters, CounterKey),
+            {LStart} = ?ERLFDB_EXTRACT(Counters, CounterKey),
             if LStart == Start -> ok; true ->
                 throw(hca_restart)
             end;
@@ -144,8 +147,8 @@ clear_previous_window(HCA, Tx, Start) ->
         recent = Recent
     } = HCA,
 
-    {CRangeStart, CRangeEnd} = erlfdb_subspace:range(Counters, {Start}),
-    {RRangeStart, RRangeEnd} = erlfdb_subspace:range(Recent, {Start}),
+    {CRangeStart, CRangeEnd} = ?ERLFDB_RANGE(Counters, Start),
+    {RRangeStart, RRangeEnd} = ?ERLFDB_RANGE(Recent, Start),
 
     erlfdb:clear_range(Tx, CRangeStart, CRangeEnd),
     erlfdb:set_option(Tx, next_write_no_conflict_range),
