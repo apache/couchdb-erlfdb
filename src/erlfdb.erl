@@ -186,7 +186,7 @@ wait(?IS_FUTURE = Future) ->
     wait(Future, []).
 
 wait(?IS_FUTURE = Future, Options) ->
-    Timeout = get_value(Options, timeout, 5000),
+    Timeout = erlfdb_util:get(Options, timeout, 5000),
     {erlfdb_future, MsgRef, _Res} = Future,
     receive
         {MsgRef, ready} -> get(Future)
@@ -204,7 +204,7 @@ wait_for_any(Futures, Options) ->
 
 
 wait_for_any(Futures, Options, ResendQ) ->
-    Timeout = get_value(Options, timeout, 5000),
+    Timeout = erlfdb_util:get(Options, timeout, 5000),
     receive
         {MsgRef, ready} = Msg ->
             case lists:keyfind(MsgRef, 2, Futures) of
@@ -493,7 +493,7 @@ error_predicate(Predicate, ErrorCode) ->
 
 
 fold_range_int(?IS_TX = Tx, StartKey, EndKey, Fun, Acc, Options) ->
-    Reverse = case get_value(Options, reverse, false) of
+    Reverse = case erlfdb_util:get(Options, reverse, false) of
         true -> 1;
         false -> 0;
         I when is_integer(I) -> I
@@ -502,11 +502,11 @@ fold_range_int(?IS_TX = Tx, StartKey, EndKey, Fun, Acc, Options) ->
         tx = Tx,
         start_key = erlfdb_key:to_selector(StartKey),
         end_key = erlfdb_key:to_selector(EndKey),
-        limit = get_value(Options, limit, 0),
-        target_bytes = get_value(Options, target_bytes, 0),
-        streaming_mode = get_value(Options, streaming_mode, want_all),
-        iteration = get_value(Options, iteration, 1),
-        snapshot = get_value(Options, snapshot, false),
+        limit = erlfdb_util:get(Options, limit, 0),
+        target_bytes = erlfdb_util:get(Options, target_bytes, 0),
+        streaming_mode = erlfdb_util:get(Options, streaming_mode, want_all),
+        iteration = erlfdb_util:get(Options, iteration, 1),
+        snapshot = erlfdb_util:get(Options, snapshot, false),
         reverse = Reverse
     },
     fold_range_int(St, Fun, Acc).
@@ -570,11 +570,4 @@ fold_range_int(#fold_st{} = St, Fun, Acc) ->
             iteration = Iteration + 1
         },
         fold_range_int(NewSt, Fun, NewAcc)
-    end.
-
-
-get_value(Options, Name, Default) ->
-    case lists:keyfind(Name, 1, Options) of
-        {Name, Value} -> Value;
-        _ -> Default
     end.
