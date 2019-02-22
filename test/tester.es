@@ -295,15 +295,20 @@ run_loop(#st{} = St) ->
         binary:part(Op, {0, size(Op) - 9}) % strip off _DATABASE/_SNAPSHOT
     end,
 
+    TxObj = case {IsDb, IsSS} of
+        {true, false} ->
+            Db;
+        {false, false} ->
+            get_transaction(TxName);
+        {false, true} ->
+            erlfdb:snapshot(get_transaction(TxName))
+    end,
+
     PreSt = St#st{
         op_tuple = OpTuple,
         is_db = IsDb,
         is_snapshot = IsSS
     },
-
-    TxObj = if IsDb -> Db; true ->
-        get_transaction(TxName)
-    end,
 
     PostSt = try
         #st{} = execute(TxObj, PreSt, OpName)
@@ -389,11 +394,7 @@ execute(TxObj, St, <<"ON_ERROR">>) ->
 
 execute(TxObj, St, <<"GET">>) ->
     Key = stack_pop(St),
-    FunName = if
-        St#st.is_snapshot -> get_ss;
-        true -> get
-    end,
-    Value = case erlfdb:FunName(TxObj, Key) of
+    Value = case erlfdb:get(TxObj, Key) of
         {erlfdb_future, _, _} = Future ->
             erlfdb:wait(Future);
         Else ->
@@ -409,12 +410,8 @@ execute(TxObj, St, <<"GET">>) ->
 
 execute(TxObj, St, <<"GET_KEY">>) ->
     [Key, OrEqual, Offset, Prefix] = stack_pop(St, 4),
-    FunName = if
-        St#st.is_snapshot -> get_key_ss;
-        true -> get_key
-    end,
     Selector = {Key, OrEqual, Offset},
-    Value = case erlfdb:FunName(TxObj, Selector) of
+    Value = case erlfdb:get_key(TxObj, Selector) of
         {erlfdb_future, _, _} = Future ->
             erlfdb:wait(Future);
         Else ->
@@ -433,20 +430,14 @@ execute(TxObj, St, <<"GET_KEY">>) ->
 
 execute(TxObj, St, <<"GET_RANGE">>) ->
     [Start, End, Limit, Reverse, Mode] = stack_pop(St, 5),
-    BaseOpts = [{limit, Limit}, {reverse, Reverse}, {streaming_mode, Mode}],
-    Options = if not St#st.is_snapshot -> BaseOpts; true ->
-        [{snapshot, true} | BaseOpts]
-    end,
+    Options = [{limit, Limit}, {reverse, Reverse}, {streaming_mode, Mode}],
     Result = erlfdb:get_range(TxObj, Start, End, Options),
     stack_push_range(St, Result),
     St;
 
 execute(TxObj, St, <<"GET_RANGE_STARTS_WITH">>) ->
     [Prefix, Limit, Reverse, Mode] = stack_pop(St, 4),
-    BaseOpts = [{limit, Limit}, {reverse, Reverse}, {streaming_mode, Mode}],
-    Options = if not St#st.is_snapshot -> BaseOpts; true ->
-        [{snapshot, true} | BaseOpts]
-    end,
+    Options = [{limit, Limit}, {reverse, Reverse}, {streaming_mode, Mode}],
     Resp = erlfdb:get_range_startswith(TxObj, Prefix, Options),
     stack_push_range(St, Resp),
     St;
@@ -466,10 +457,7 @@ execute(TxObj, St, <<"GET_RANGE_SELECTOR">>) ->
     ] = stack_pop(St, 10),
     Start = {StartKey, StartOrEqual, StartOffset},
     End = {EndKey, EndOrEqual, EndOffset},
-    BaseOpts = [{limit, Limit}, {reverse, Reverse}, {streaming_mode, Mode}],
-    Options = if not St#st.is_snapshot -> BaseOpts; true ->
-        [{snapshot, true} | BaseOpts]
-    end,
+    Options = [{limit, Limit}, {reverse, Reverse}, {streaming_mode, Mode}],
     Resp = erlfdb:get_range(TxObj, Start, End, Options),
     stack_push_range(St, Resp, Prefix),
     St;
