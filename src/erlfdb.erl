@@ -22,6 +22,7 @@
 
     create_transaction/1,
     transactional/2,
+    snapshot/1,
 
     % Db/Tx configuration
     set_option/2,
@@ -110,6 +111,8 @@
 -define(IS_FUTURE, {erlfdb_future, _, _}).
 -define(IS_DB, {erlfdb_database, _}).
 -define(IS_TX, {erlfdb_transaction, _}).
+-define(IS_SS, {erlfdb_snapshot, _}).
+-define(GET_TX(SS), element(2, SS)).
 
 
 open() ->
@@ -134,7 +137,17 @@ transactional(?IS_DB = Db, UserFun) when is_function(UserFun, 1) ->
     catch error:{erlfdb_error, Code} ->
         wait(on_error(Tx, Code)),
         transactional(Db, UserFun)
-    end.
+    end;
+
+transactional(?IS_TX = Tx, UserFun) when is_function(UserFun, 1) ->
+    UserFun(Tx);
+
+transactional(?IS_SS = SS, UserFun) when is_function(UserFun, 1) ->
+    UserFun(SS).
+
+
+snapshot(?IS_TX = Tx) ->
+    {erlfdb_snapshot, Tx}.
 
 
 set_option(DbOrTx, Option) ->
@@ -255,7 +268,10 @@ get(?IS_DB = Db, Key) ->
     end);
 
 get(?IS_TX = Tx, Key) ->
-    erlfdb_nif:transaction_get(Tx, Key, false).
+    erlfdb_nif:transaction_get(Tx, Key, false);
+
+get(?IS_SS = SS, Key) ->
+    get_ss(?GET_TX(SS), Key).
 
 
 get_ss(?IS_TX = Tx, Key) ->
@@ -268,7 +284,10 @@ get_key(?IS_DB = Db, Key) ->
     end);
 
 get_key(?IS_TX = Tx, Key) ->
-    erlfdb_nif:transaction_get_key(Tx, Key, false).
+    erlfdb_nif:transaction_get_key(Tx, Key, false);
+
+get_key(?IS_SS = SS, Key) ->
+    get_key_ss(?GET_TX(SS), Key).
 
 
 get_key_ss(?IS_TX = Tx, Key) ->
@@ -287,7 +306,10 @@ get_range(?IS_DB = Db, StartKey, EndKey, Options) ->
 get_range(?IS_TX = Tx, StartKey, EndKey, Options) ->
     Fun = fun(Rows, Acc) -> [Rows | Acc] end,
     Chunks = fold_range_int(Tx, StartKey, EndKey, Fun, [], Options),
-    lists:flatten(lists:reverse(Chunks)).
+    lists:flatten(lists:reverse(Chunks));
+
+get_range(?IS_SS = SS, StartKey, EndKey, Options) ->
+    get_range(?GET_TX(SS), StartKey, EndKey, [{snapshot, true} | Options]).
 
 
 get_range_startswith(DbOrTx, Prefix) ->
@@ -312,7 +334,11 @@ fold_range(?IS_DB = Db, StartKey, EndKey, Fun, Acc, Options) ->
 fold_range(?IS_TX = Tx, StartKey, EndKey, Fun, Acc, Options) ->
     fold_range_int(Tx, StartKey, EndKey, fun(Rows, InnerAcc) ->
         lists:foldl(Fun, InnerAcc, Rows)
-    end, Acc, Options).
+    end, Acc, Options);
+
+fold_range(?IS_SS = SS, StartKey, EndKey, Fun, Acc, Options) ->
+    SSOptions = [{snapshot, true} | Options],
+    fold_range(?GET_TX(SS), StartKey, EndKey, Fun, Acc, SSOptions).
 
 
 set(?IS_DB = Db, Key, Value) ->
@@ -321,7 +347,10 @@ set(?IS_DB = Db, Key, Value) ->
     end);
 
 set(?IS_TX = Tx, Key, Value) ->
-    erlfdb_nif:transaction_set(Tx, Key, Value).
+    erlfdb_nif:transaction_set(Tx, Key, Value);
+
+set(?IS_SS = SS, Key, Value) ->
+    set(?GET_TX(SS), Key, Value).
 
 
 clear(?IS_DB = Db, Key) ->
@@ -330,7 +359,10 @@ clear(?IS_DB = Db, Key) ->
     end);
 
 clear(?IS_TX = Tx, Key) ->
-    erlfdb_nif:transaction_clear(Tx, Key).
+    erlfdb_nif:transaction_clear(Tx, Key);
+
+clear(?IS_SS = SS, Key) ->
+    clear(?GET_TX(SS), Key).
 
 
 clear_range(?IS_DB = Db, StartKey, EndKey) ->
@@ -339,7 +371,10 @@ clear_range(?IS_DB = Db, StartKey, EndKey) ->
     end);
 
 clear_range(?IS_TX = Tx, StartKey, EndKey) ->
-    erlfdb_nif:transaction_clear_range(Tx, StartKey, EndKey).
+    erlfdb_nif:transaction_clear_range(Tx, StartKey, EndKey);
+
+clear_range(?IS_SS = SS, StartKey, EndKey) ->
+    clear_range(?GET_TX(SS), StartKey, EndKey).
 
 
 clear_range_startswith(?IS_DB = Db, Prefix) ->
@@ -349,7 +384,10 @@ clear_range_startswith(?IS_DB = Db, Prefix) ->
 
 clear_range_startswith(?IS_TX = Tx, Prefix) ->
     EndKey = erlfdb_key:strinc(Prefix),
-    erlfdb_nif:transaction_clear_range(Tx, Prefix, EndKey).
+    erlfdb_nif:transaction_clear_range(Tx, Prefix, EndKey);
+
+clear_range_startswith(?IS_SS = SS, Prefix) ->
+    clear_range_startswith(?GET_TX(SS), Prefix).
 
 
 add(DbOrTx, Key, Param) ->
@@ -398,7 +436,10 @@ atomic_op(?IS_DB = Db, Key, Param, Op) ->
     end);
 
 atomic_op(?IS_TX = Tx, Key, Param, Op) ->
-    erlfdb_nif:transaction_atomic_op(Tx, Key, Param, Op).
+    erlfdb_nif:transaction_atomic_op(Tx, Key, Param, Op);
+
+atomic_op(?IS_SS = SS, Key, Param, Op) ->
+    atomic_op(?GET_TX(SS), Key, Param, Op).
 
 
 watch(?IS_DB = Db, Key) ->
@@ -407,7 +448,10 @@ watch(?IS_DB = Db, Key) ->
     end);
 
 watch(?IS_TX = Tx, Key) ->
-    erlfdb_nif:transaction_watch(Tx, Key).
+    erlfdb_nif:transaction_watch(Tx, Key);
+
+watch(?IS_SS = SS, Key) ->
+    watch(?GET_TX(SS), Key).
 
 
 get_and_watch(?IS_DB = Db, Key) ->
@@ -432,40 +476,55 @@ clear_and_watch(?IS_DB = Db, Key) ->
     end).
 
 
-add_read_conflict_key(?IS_TX = Tx, Key) ->
-    add_read_conflict_range(Tx, Key, <<Key/binary, 16#00>>).
+add_read_conflict_key(TxObj, Key) ->
+    add_read_conflict_range(TxObj, Key, <<Key/binary, 16#00>>).
 
 
-add_read_conflict_range(?IS_TX = Tx, StartKey, EndKey) ->
-    add_conflict_range(Tx, StartKey, EndKey, read).
+add_read_conflict_range(TxObj, StartKey, EndKey) ->
+    add_conflict_range(TxObj, StartKey, EndKey, read).
 
 
-add_write_conflict_key(?IS_TX = Tx, Key) ->
-    add_write_conflict_range(Tx, Key, <<Key/binary, 16#00>>).
+add_write_conflict_key(TxObj, Key) ->
+    add_write_conflict_range(TxObj, Key, <<Key/binary, 16#00>>).
 
 
-add_write_conflict_range(?IS_TX = Tx, StartKey, EndKey) ->
-    add_conflict_range(Tx, StartKey, EndKey, write).
+add_write_conflict_range(TxObj, StartKey, EndKey) ->
+    add_conflict_range(TxObj, StartKey, EndKey, write).
 
 
 add_conflict_range(?IS_TX = Tx, StartKey, EndKey, Type) ->
-    erlfdb_nif:transaction_add_conflict_range(Tx, StartKey, EndKey, Type).
+    erlfdb_nif:transaction_add_conflict_range(Tx, StartKey, EndKey, Type);
+
+add_conflict_range(?IS_SS = SS, StartKey, EndKey, Type) ->
+    add_conflict_range(?GET_TX(SS), StartKey, EndKey, Type).
 
 
 set_read_version(?IS_TX = Tx, Version) ->
-    erlfdb_nif:transaction_set_read_version(Tx, Version).
+    erlfdb_nif:transaction_set_read_version(Tx, Version);
+
+set_read_version(?IS_SS = SS, Version) ->
+    set_read_version(?GET_TX(SS), Version).
 
 
 get_read_version(?IS_TX = Tx) ->
-    erlfdb_nif:transaction_get_read_version(Tx).
+    erlfdb_nif:transaction_get_read_version(Tx);
+
+get_read_version(?IS_SS = SS) ->
+    get_read_version(?GET_TX(SS)).
 
 
 get_committed_version(?IS_TX = Tx) ->
-    erlfdb_nif:transaction_get_committed_version(Tx).
+    erlfdb_nif:transaction_get_committed_version(Tx);
+
+get_committed_version(?IS_SS = SS) ->
+    get_committed_version(?GET_TX(SS)).
 
 
 get_versionstamp(?IS_TX = Tx) ->
-    erlfdb_nif:transaction_get_versionstamp(Tx).
+    erlfdb_nif:transaction_get_versionstamp(Tx);
+
+get_versionstamp(?IS_SS = SS) ->
+    get_versionstamp(?GET_TX(SS)).
 
 
 get_addresses_for_key(?IS_DB = Db, Key) ->
@@ -474,14 +533,20 @@ get_addresses_for_key(?IS_DB = Db, Key) ->
     end);
 
 get_addresses_for_key(?IS_TX = Tx, Key) ->
-    erlfdb_nif:transaction_get_addresses_for_key(Tx, Key).
+    erlfdb_nif:transaction_get_addresses_for_key(Tx, Key);
+
+get_addresses_for_key(?IS_SS = SS, Key) ->
+    get_addresses_for_key(?GET_TX(SS), Key).
 
 
 on_error(?IS_TX = Tx, {erlfdb_error, ErrorCode}) ->
     on_error(Tx, ErrorCode);
 
 on_error(?IS_TX = Tx, ErrorCode) ->
-    erlfdb_nif:transaction_on_error(Tx, ErrorCode).
+    erlfdb_nif:transaction_on_error(Tx, ErrorCode);
+
+on_error(?IS_SS = SS, Error) ->
+    on_error(?GET_TX(SS), Error).
 
 
 error_predicate(Predicate, {erlfdb_error, ErrorCode}) ->
