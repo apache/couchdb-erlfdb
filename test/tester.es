@@ -20,35 +20,6 @@
 }).
 
 
-py_repr(Bin) when is_binary(Bin) ->
-    [$'] ++ lists:map(fun(C) ->
-        case C of
-            %% 7 ->
-            %%     "\\a";
-            %% 8 ->
-            %%     "\\b";
-            9 ->
-                "\\t";
-            10 ->
-                "\\n";
-            %% 11 ->
-            %%     "\\v";
-            %% 12 ->
-            %%     "\\f";
-            13 ->
-                "\\r";
-            39 ->
-                "\\'";
-            92 ->
-                "\\\\";
-            _ when C >= 32, C =< 126 ->
-                C;
-            _ ->
-                io_lib:format("\\x~2.16.0b", [C])
-        end
-    end, binary_to_list(Bin)) ++ [$'].
-
-
 stack_create() ->
     Pid = spawn_link(fun() -> stack_loop([]) end),
     spawn(fun() ->
@@ -702,7 +673,6 @@ main([Prefix, APIVsn]) ->
     main([Prefix, APIVsn, ""]);
 
 main([Prefix, APIVsn, ClusterFileStr]) ->
-    py_repr(<<"foo">>),
     %% Prompt = io_lib:format("GDB Attach to: ~s~n", [os:getpid()]),
     %% io:get_line(Prompt),
     %% io:format("Running tests: ~s ~s ~s~n", [Prefix, APIVsn, ClusterFileStr]),

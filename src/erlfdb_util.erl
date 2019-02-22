@@ -15,7 +15,9 @@
 
 -export([
     get/2,
-    get/3
+    get/3,
+
+    repr/1
 ]).
 
 
@@ -29,3 +31,17 @@ get(List, Key, Default) ->
         {Key, Value} -> Value;
         _ -> Default
     end.
+
+
+repr(Bin) when is_binary(Bin) ->
+    [$'] ++ lists:map(fun(C) ->
+        case C of
+            9 -> "\\t";
+            10 -> "\\n";
+            13 -> "\\r";
+            39 -> "\\'";
+            92 -> "\\\\";
+            _ when C >= 32, C =< 126 -> C;
+            _ -> io_lib:format("\\x~2.16.0b", [C])
+        end
+    end, binary_to_list(Bin)) ++ [$'].
