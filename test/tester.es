@@ -656,7 +656,7 @@ execute(_TxObj, St, <<"START_THREAD">>) ->
 
 execute(_TxObj, St, <<"WAIT_EMPTY">>) ->
     Prefix = stack_pop(St),
-    wait_for_empty(St, Prefix),
+    wait_for_empty(St#st.db, Prefix),
     stack_push(St, <<"WAITED_FOR_EMPTY">>),
     St;
 
