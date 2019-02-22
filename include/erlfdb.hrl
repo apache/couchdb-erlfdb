@@ -15,18 +15,21 @@
 
 
 -define(ERLFDB_PACK(Tuple), erlfdb_tuple:pack(Tuple)).
--define(ERLFDB_PACK(Tuple, Prefix), erlfdb_tuple:pack(Tuple, Prefix)).
+-define(ERLFDB_PACK(Prefix, Tuple), erlfdb_tuple:pack(Tuple, Prefix)).
 
--define(ERLFDB_RANGE(Prefix), erlfdb_tuple:range({}, Prefix)).
--define(ERLFDB_RANGE(Prefix, Term), erlfdb_tuple:range({Term}, Prefix)).
+-define(ERLFDB_RANGE(Prefix),
+        erlfdb_subspace:range(erlfdb_subspace:create({}, Prefix))).
+-define(ERLFDB_RANGE(Prefix, Term),
+        erlfdb_subspace:range(erlfdb_subspace:create({Term}, Prefix))).
 
 -define(ERLFDB_EXTEND(Prefix, Term), erlfdb_tuple:pack({Term}, Prefix)).
 
--define(ERLFDB_EXTRACT(Prefix, Packed), begin
+-define(ERLFDB_EXTRACT(Prefix, Packed), (fun() ->
         __PrefixLen = size(Prefix),
         <<Prefix:__PrefixLen/binary, __Tail/binary>> = Packed,
         erlfdb_tuple:unpack(__Tail)
-    end).
+    end)()).
+
 
 
 
