@@ -107,9 +107,10 @@ range(#erlfdb_subspace{} = Subspace, Tuple) when is_tuple(Tuple) ->
 
 
 contains(#erlfdb_subspace{} = Subspace, Key) ->
-    KeyLen = size(Key),
-    case ?PREFIX(Subspace) of
-        <<Key:KeyLen/binary, _/binary>> ->
+    Prefix = ?PREFIX(Subspace),
+    PrefLen = size(Prefix),
+    case Key of
+        <<Prefix:PrefLen/binary, _/binary>> ->
             true;
         _ ->
             false
