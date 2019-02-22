@@ -266,8 +266,8 @@ init_run_loop(Db, Prefix) ->
 
 
 run_loop(#st{instructions = []} = St) ->
-    lists:foreach(fun(Pid) ->
-        receive {'DOWN', _, _, Pid, _} -> ok end
+    lists:foreach(fun({Pid, Ref}) ->
+        receive {'DOWN', Ref, _, Pid, _} -> ok end
     end, St#st.pids);
 
 run_loop(#st{} = St) ->
