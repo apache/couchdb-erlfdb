@@ -35,7 +35,9 @@
     range/1,
     range/2,
 
-    contains/2
+    contains/2,
+
+    subspace/2
 ]).
 
 
@@ -112,3 +114,7 @@ contains(#erlfdb_subspace{} = Subspace, Key) ->
         _ ->
             false
     end.
+
+
+subspace(#erlfdb_subspace{} = Subspace, Tuple) ->
+    create(Subspace, Tuple).
