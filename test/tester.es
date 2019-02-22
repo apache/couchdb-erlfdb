@@ -48,6 +48,10 @@ stack_handle({From, log}, St) ->
     From ! {self(), ok},
     St;
 
+stack_handle({From, clear}, _St) ->
+    From ! {self(), ok},
+    [];
+
 stack_handle({From, length}, St) ->
     From ! {self(), length(St)},
     St;
@@ -81,6 +85,14 @@ stack_handle({From, pop, Count}, St) ->
 %% stack_log(Pid) ->
 %%     Pid ! {self(), log},
 %%     receive {Pid, ok} -> ok end.
+
+
+stack_clear(#st{stack = Pid}) ->
+    stack_clear(Pid);
+
+stack_clear(Pid) ->
+    Pid ! {self(), clear},
+    receive {Pid, ok} -> ok end.
 
 
 stack_size(#st{stack = Pid}) ->
@@ -323,8 +335,8 @@ execute(_TxObj, St, <<"DUP">>) ->
     St;
 
 execute(_TxObj, St, <<"EMPTY_STACK">>) ->
-    exit(St#st.stack, kill),
-    St#st{stack = stack_create()};
+    stack_clear(St),
+    St;
 
 execute(_TxObj, St, <<"SWAP">>) ->
     Idx = stack_pop(St),
