@@ -750,7 +750,7 @@ execute(TxObj, #st{is_directory_op = true} = St, Op) ->
     Dir = lists:nth(DirIdx + 1, DirList),
     try
         execute_dir(TxObj, St, Dir, Op)
-    catch error:{erlfdb_directory, _} = _R ->
+    catch _T:_R ->
         NewSt = case lists:member(Op, ?DIRECTORY_CREATE_OPS) of
             true -> append_dir(St, null);
             false -> St
