@@ -41,7 +41,7 @@ Directory Layer Schema-ish
 
 
 `'\xFE\x17\x05\x16\x02bar\x00'` -> `'\x17\x19'` - A child of "foo" named
-    "bar" with node id `'\x17\x19'`. The tree is made my recursively
+    "bar" with node id `'\x17\x19'`. The tree is made by recursively
     following these paths.
 
 
@@ -133,7 +133,7 @@ Create New Directory at Path
 ----------------------------
 
   * Find directory at Path[:-1]
-  * If direcotry[Path[-1]] exists: return eexists
+  * If directory[Path[-1]] exists: return exists
   * Allocate new node id via HCA
   * Write `'\xFE' + node_id + '\x01layer\x00' = whatever was passed
   * return samesies as for open path
