@@ -20,6 +20,7 @@
     pack_vs/2,
     unpack/1,
     range/1,
+    range/2,
     compare/2
 ]).
 
@@ -121,18 +122,33 @@ pack_vs(Tuple, Prefix) ->
 
 
 unpack(Binary) ->
-    case decode(Binary, 0) of
-        {Elems, <<>>} ->
-            list_to_tuple(Elems);
-        {_, Tail} ->
-            erlang:error({invalid_trailing_data, Tail})
+    unpack(Binary, <<>>).
+
+
+unpack(Binary, Prefix) ->
+    PrefixLen = size(Prefix),
+    case Binary of
+        <<Prefix:PrefixLen/binary, Rest/binary>> ->
+            case decode(Binary, 0) of
+                {Elems, <<>>} ->
+                    list_to_tuple(Elems);
+                {_, Tail} ->
+                    erlang:error({invalid_trailing_data, Tail})
+            end;
+        _ ->
+            E = {erlfdb_tuple_error, invalid_unpack_prefix},
+            erlang:error(E)
     end.
 
 
 % Returns a {StartKey, EndKey} pair of binaries
 % that includes all possible sub-tuples
 range(Tuple) ->
-    Base = pack(Tuple),
+    range(Tuple, <<>>).
+
+
+range(Tuple, Prefix) ->
+    Base = pack(Tuple, Prefix),
     {<<Base/binary, 16#00>>, <<Base/binary, 16#FF>>}.
 
 
