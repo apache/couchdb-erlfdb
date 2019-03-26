@@ -130,7 +130,7 @@ unpack(Binary, Prefix) ->
     PrefixLen = size(Prefix),
     case Binary of
         <<Prefix:PrefixLen/binary, Rest/binary>> ->
-            case decode(Binary, 0) of
+            case decode(Rest, 0) of
                 {Elems, <<>>} ->
                     list_to_tuple(Elems);
                 {_, Tail} ->
