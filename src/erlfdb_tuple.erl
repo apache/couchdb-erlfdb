@@ -19,6 +19,7 @@
     pack_vs/1,
     pack_vs/2,
     unpack/1,
+    unpack/2,
     range/1,
     range/2,
     compare/2
