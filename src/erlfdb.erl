@@ -131,10 +131,12 @@ create_transaction(?IS_DB = Db) ->
 transactional(?IS_DB = Db, UserFun) when is_function(UserFun, 1) ->
     Tx = create_transaction(Db),
     try
+        put(erlfdb_error, undefined),
         Ret = UserFun(Tx),
         wait(commit(Tx)),
         Ret
     catch error:{erlfdb_error, Code} ->
+        put(erlfdb_error, Code),
         wait(on_error(Tx, Code)),
         transactional(Db, UserFun)
     end;
