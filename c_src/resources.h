@@ -13,6 +13,8 @@
 #ifndef ERLFDB_RESOURCES_H
 #define ERLFDB_RESOURCES_H
 
+#include <stdbool.h>
+
 #include "erl_nif.h"
 #include "fdb.h"
 
@@ -64,6 +66,7 @@ typedef struct _ErlFDBTransaction
 {
     FDBTransaction* transaction;
     ERL_NIF_TERM owner;
+    bool read_only;
 } ErlFDBTransaction;
 
 

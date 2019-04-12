@@ -862,6 +862,8 @@ erlfdb_database_create_transaction(
     enif_self(env, &pid);
     t->owner = enif_make_pid(env, &pid);
 
+    t->read_only = true;
+
     ret = enif_make_resource(env, t);
     enif_release_resource(t);
     return T2(env, ATOM_erlfdb_transaction, ret);
@@ -1353,6 +1355,8 @@ erlfdb_transaction_set(
             val.size
         );
 
+    t->read_only = false;
+
     return ATOM_ok;
 }
 
@@ -1391,6 +1395,8 @@ erlfdb_transaction_clear(
     }
 
     fdb_transaction_clear(t->transaction, (uint8_t*) key.data, key.size);
+
+    t->read_only = false;
 
     return ATOM_ok;
 }
@@ -1441,6 +1447,8 @@ erlfdb_transaction_clear_range(
             (uint8_t*) ekey.data,
             ekey.size
         );
+
+    t->read_only = false;
 
     return ATOM_ok;
 }
@@ -1519,6 +1527,8 @@ erlfdb_transaction_atomic_op(
             param.size,
             mtype
         );
+
+    t->read_only = false;
 
     return ATOM_ok;
 }
@@ -1750,6 +1760,7 @@ erlfdb_transaction_reset(
     }
 
     fdb_transaction_reset(t->transaction);
+    t->read_only = true;
 
     return ATOM_ok;
 }
@@ -1850,7 +1861,47 @@ erlfdb_transaction_add_conflict_range(
         return erlfdb_erlang_error(env, err);
     }
 
+    if(rtype == FDB_CONFLICT_RANGE_TYPE_WRITE) {
+        t->read_only = false;
+    }
+
     return ATOM_ok;
+}
+
+
+static ERL_NIF_TERM
+erlfdb_transaction_is_read_only(
+        ErlNifEnv* env,
+        int argc,
+        const ERL_NIF_TERM argv[]
+    )
+{
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    ErlFDBTransaction* t;
+    void* res;
+
+    if(st->lib_state != ErlFDB_CONNECTED) {
+        return enif_make_badarg(env);
+    }
+
+    if(argc != 1) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_resource(env, argv[0], ErlFDBTransactionRes, &res)) {
+        return enif_make_badarg(env);
+    }
+    t = (ErlFDBTransaction*) res;
+
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
+
+    if(t->read_only) {
+        return ATOM_true;
+    } else {
+        return ATOM_false;
+    }
 }
 
 
@@ -1963,6 +2014,7 @@ static ErlNifFunc funcs[] =
     NIF_FUNC(erlfdb_transaction_reset, 1),
     NIF_FUNC(erlfdb_transaction_cancel, 1),
     NIF_FUNC(erlfdb_transaction_add_conflict_range, 4),
+    NIF_FUNC(erlfdb_transaction_is_read_only, 1),
 
     NIF_FUNC(erlfdb_get_error, 1),
     NIF_FUNC(erlfdb_error_predicate, 2)
