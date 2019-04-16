@@ -99,6 +99,9 @@
     get_committed_version/1,
     get_versionstamp/1,
 
+    % Transaction status
+    is_read_only/1,
+
     % Locality
     get_addresses_for_key/2,
 
@@ -527,6 +530,13 @@ get_versionstamp(?IS_TX = Tx) ->
 
 get_versionstamp(?IS_SS = SS) ->
     get_versionstamp(?GET_TX(SS)).
+
+
+is_read_only(?IS_TX = Tx) ->
+    erlfdb_nif:transaction_is_read_only(Tx);
+
+is_read_only(?IS_SS = SS) ->
+    is_read_only(?GET_TX(SS)).
 
 
 get_addresses_for_key(?IS_DB = Db, Key) ->
