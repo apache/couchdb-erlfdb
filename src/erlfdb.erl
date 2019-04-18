@@ -107,7 +107,8 @@
 
     % Misc
     on_error/2,
-    error_predicate/2
+    error_predicate/2,
+    get_last_error/0
 ]).
 
 
@@ -116,6 +117,7 @@
 -define(IS_TX, {erlfdb_transaction, _}).
 -define(IS_SS, {erlfdb_snapshot, _}).
 -define(GET_TX(SS), element(2, SS)).
+-define(ERLFDB_ERROR, '$erlfdb_error').
 
 
 open() ->
@@ -132,17 +134,8 @@ create_transaction(?IS_DB = Db) ->
 
 
 transactional(?IS_DB = Db, UserFun) when is_function(UserFun, 1) ->
-    Tx = create_transaction(Db),
-    try
-        put(erlfdb_error, undefined),
-        Ret = UserFun(Tx),
-        wait(commit(Tx)),
-        Ret
-    catch error:{erlfdb_error, Code} ->
-        put(erlfdb_error, Code),
-        wait(on_error(Tx, Code)),
-        transactional(Db, UserFun)
-    end;
+    clear_erlfdb_error(),
+    do_transaction(Db, UserFun);
 
 transactional(?IS_TX = Tx, UserFun) when is_function(UserFun, 1) ->
     UserFun(Tx);
@@ -566,6 +559,27 @@ error_predicate(Predicate, {erlfdb_error, ErrorCode}) ->
 
 error_predicate(Predicate, ErrorCode) ->
     erlfdb_nif:error_predicate(Predicate, ErrorCode).
+
+
+get_last_error() ->
+    get(?ERLFDB_ERROR).
+
+
+clear_erlfdb_error() ->
+    put(?ERLFDB_ERROR, undefined).
+
+
+do_transaction(Db, UserFun) ->
+    Tx = create_transaction(Db),
+    try
+        Ret = UserFun(Tx),
+        wait(commit(Tx)),
+        Ret
+    catch error:{erlfdb_error, Code} ->
+        put(?ERLFDB_ERROR, Code),
+        wait(on_error(Tx, Code)),
+        do_transaction(Db, UserFun)
+    end.
 
 
 -record(fold_st, {
