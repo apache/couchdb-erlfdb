@@ -119,6 +119,7 @@ erlfdb_create_future(ErlNifEnv* env, FDBFuture* future, ErlFDBFutureType ftype)
     }
 
     ret = enif_make_resource(env, f);
+    enif_release_resource(f);
     return T3(env, ATOM_erlfdb_future, ref, ret);
 }
 
