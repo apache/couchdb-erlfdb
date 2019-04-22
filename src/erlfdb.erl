@@ -203,6 +203,13 @@ wait(Ready) ->
 wait(?IS_FUTURE = Future, Options) ->
     case is_ready(Future) of
         true ->
+            % Flush ready message if already sent
+            {erlfdb_future, MsgRef, _Res} = Future,
+            receive
+                {MsgRef, ready} -> ok
+            after 0 ->
+                ok
+            end,
             get(Future);
         false ->
             Timeout = erlfdb_util:get(Options, timeout, 5000),
