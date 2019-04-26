@@ -8,4 +8,5 @@ erln8.config
 c_src/*.d
 c_src/*.o
 ebin/
-priv/
+
+priv/erlfdb_nif.*
