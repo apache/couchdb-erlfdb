@@ -569,7 +569,7 @@ error_predicate(Predicate, ErrorCode) ->
 
 
 get_last_error() ->
-    get(?ERLFDB_ERROR).
+    erlang:get(?ERLFDB_ERROR).
 
 
 clear_erlfdb_error() ->
