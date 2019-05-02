@@ -61,6 +61,8 @@
     fold_range/5,
     fold_range/6,
 
+    get_range_raw/4,
+
     % Data modifications
     set/3,
     clear/2,
@@ -118,6 +120,18 @@
 -define(IS_SS, {erlfdb_snapshot, _}).
 -define(GET_TX(SS), element(2, SS)).
 -define(ERLFDB_ERROR, '$erlfdb_error').
+
+
+-record(fold_st, {
+    start_key,
+    end_key,
+    limit,
+    target_bytes,
+    streaming_mode,
+    iteration,
+    snapshot,
+    reverse
+}).
 
 
 open() ->
@@ -344,6 +358,40 @@ fold_range(?IS_TX = Tx, StartKey, EndKey, Fun, Acc, Options) ->
 fold_range(?IS_SS = SS, StartKey, EndKey, Fun, Acc, Options) ->
     SSOptions = [{snapshot, true} | Options],
     fold_range(?GET_TX(SS), StartKey, EndKey, Fun, Acc, SSOptions).
+
+
+get_range_raw(?IS_DB = Db, StartKey, EndKey, Options) ->
+    transactional(Db, fun(Tx) ->
+        get_range_raw(Tx, StartKey, EndKey, Options)
+    end);
+
+get_range_raw(?IS_TX = Tx, StartKey0, EndKey0, Options) ->
+    #fold_st{
+        start_key = StartKey,
+        end_key = EndKey,
+        limit = Limit,
+        target_bytes = TargetBytes,
+        streaming_mode = StreamingMode,
+        iteration = Iteration,
+        snapshot = Snapshot,
+        reverse = Reverse
+    } = options_to_fold_st(StartKey0, EndKey0, Options),
+
+    erlfdb_nif:transaction_get_range(
+            Tx,
+            StartKey,
+            EndKey,
+            Limit,
+            TargetBytes,
+            StreamingMode,
+            Iteration,
+            Snapshot,
+            Reverse
+        );
+
+get_range_raw(?IS_SS = SS, StartKey, EndKey, Options) ->
+    SSOptions = [{snapshot, true} | Options],
+    get_range_raw(?GET_TX(SS), StartKey, EndKey, SSOptions).
 
 
 set(?IS_DB = Db, Key, Value) ->
@@ -589,42 +637,13 @@ do_transaction(Db, UserFun) ->
     end.
 
 
--record(fold_st, {
-    tx,
-    start_key,
-    end_key,
-    limit,
-    target_bytes,
-    streaming_mode,
-    iteration,
-    snapshot,
-    reverse
-}).
-
-
 fold_range_int(?IS_TX = Tx, StartKey, EndKey, Fun, Acc, Options) ->
-    Reverse = case erlfdb_util:get(Options, reverse, false) of
-        true -> 1;
-        false -> 0;
-        I when is_integer(I) -> I
-    end,
-    St = #fold_st{
-        tx = Tx,
-        start_key = erlfdb_key:to_selector(StartKey),
-        end_key = erlfdb_key:to_selector(EndKey),
-        limit = erlfdb_util:get(Options, limit, 0),
-        target_bytes = erlfdb_util:get(Options, target_bytes, 0),
-        streaming_mode = erlfdb_util:get(Options, streaming_mode, want_all),
-        iteration = erlfdb_util:get(Options, iteration, 1),
-        snapshot = erlfdb_util:get(Options, snapshot, false),
-        reverse = Reverse
-    },
-    fold_range_int(St, Fun, Acc).
+    St = options_to_fold_st(StartKey, EndKey, Options),
+    fold_range_int(Tx, St, Fun, Acc).
 
 
-fold_range_int(#fold_st{} = St, Fun, Acc) ->
+fold_range_int(Tx, #fold_st{} = St, Fun, Acc) ->
     #fold_st{
-        tx = Tx,
         start_key = StartKey,
         end_key = EndKey,
         limit = Limit,
@@ -679,5 +698,23 @@ fold_range_int(#fold_st{} = St, Fun, Acc) ->
             limit = if Limit == 0 -> 0; true -> Limit - Count end,
             iteration = Iteration + 1
         },
-        fold_range_int(NewSt, Fun, NewAcc)
+        fold_range_int(Tx, NewSt, Fun, NewAcc)
     end.
+
+
+options_to_fold_st(StartKey, EndKey, Options) ->
+    Reverse = case erlfdb_util:get(Options, reverse, false) of
+        true -> 1;
+        false -> 0;
+        I when is_integer(I) -> I
+    end,
+    #fold_st{
+        start_key = erlfdb_key:to_selector(StartKey),
+        end_key = erlfdb_key:to_selector(EndKey),
+        limit = erlfdb_util:get(Options, limit, 0),
+        target_bytes = erlfdb_util:get(Options, target_bytes, 0),
+        streaming_mode = erlfdb_util:get(Options, streaming_mode, want_all),
+        iteration = erlfdb_util:get(Options, iteration, 1),
+        snapshot = erlfdb_util:get(Options, snapshot, false),
+        reverse = Reverse
+    }.
