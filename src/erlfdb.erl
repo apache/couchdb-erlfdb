@@ -102,6 +102,7 @@
     get_versionstamp/1,
 
     % Transaction status
+    get_next_tx_id/1,
     is_read_only/1,
 
     % Locality
@@ -578,6 +579,13 @@ get_versionstamp(?IS_TX = Tx) ->
 
 get_versionstamp(?IS_SS = SS) ->
     get_versionstamp(?GET_TX(SS)).
+
+
+get_next_tx_id(?IS_TX = Tx) ->
+    erlfdb_nif:transaction_get_next_tx_id(Tx);
+
+get_next_tx_id(?IS_SS = SS) ->
+    get_next_tx_id(?GET_TX(SS)).
 
 
 is_read_only(?IS_TX = Tx) ->

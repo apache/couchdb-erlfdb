@@ -863,6 +863,7 @@ erlfdb_database_create_transaction(
     enif_self(env, &pid);
     t->owner = enif_make_pid(env, &pid);
 
+    t->txid = 0;
     t->read_only = true;
 
     ret = enif_make_resource(env, t);
@@ -1761,6 +1762,8 @@ erlfdb_transaction_reset(
     }
 
     fdb_transaction_reset(t->transaction);
+
+    t->txid = 0;
     t->read_only = true;
 
     return ATOM_ok;
@@ -1867,6 +1870,42 @@ erlfdb_transaction_add_conflict_range(
     }
 
     return ATOM_ok;
+}
+
+
+static ERL_NIF_TERM
+erlfdb_transaction_get_next_tx_id(
+        ErlNifEnv* env,
+        int argc,
+        const ERL_NIF_TERM argv[]
+    )
+{
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    ErlFDBTransaction* t;
+    void* res;
+
+    if(st->lib_state != ErlFDB_CONNECTED) {
+        return enif_make_badarg(env);
+    }
+
+    if(argc != 1) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_resource(env, argv[0], ErlFDBTransactionRes, &res)) {
+        return enif_make_badarg(env);
+    }
+    t = (ErlFDBTransaction*) res;
+
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
+
+    if(t->txid > 65535) {
+        return enif_make_badarg(env);
+    }
+
+    return enif_make_uint(env, t->txid++);
 }
 
 
@@ -2015,6 +2054,7 @@ static ErlNifFunc funcs[] =
     NIF_FUNC(erlfdb_transaction_reset, 1),
     NIF_FUNC(erlfdb_transaction_cancel, 1),
     NIF_FUNC(erlfdb_transaction_add_conflict_range, 4),
+    NIF_FUNC(erlfdb_transaction_get_next_tx_id, 1),
     NIF_FUNC(erlfdb_transaction_is_read_only, 1),
 
     NIF_FUNC(erlfdb_get_error, 1),

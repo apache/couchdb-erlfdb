@@ -55,6 +55,7 @@
     transaction_reset/1,
     transaction_cancel/1,
     transaction_add_conflict_range/4,
+    transaction_get_next_tx_id/1,
     transaction_is_read_only/1,
 
     get_error/1,
@@ -440,6 +441,11 @@ transaction_add_conflict_range(
     erlfdb_transaction_add_conflict_range(Tx, StartKey, EndKey, ConflictType).
 
 
+-spec transaction_get_next_tx_id(transaction()) -> non_neg_integer().
+transaction_get_next_tx_id({erlfdb_transaction, Tx}) ->
+    erlfdb_transaction_get_next_tx_id(Tx).
+
+
 -spec transaction_is_read_only(transaction()) -> true | false.
 transaction_is_read_only({erlfdb_transaction, Tx}) ->
     erlfdb_transaction_is_read_only(Tx).
@@ -587,6 +593,7 @@ erlfdb_transaction_add_conflict_range(
         _EndKey,
         _Type
     ) -> ?NOT_LOADED.
+erlfdb_transaction_get_next_tx_id(_Transaction) -> ?NOT_LOADED.
 erlfdb_transaction_is_read_only(_Transaction) -> ?NOT_LOADED.
 
 
