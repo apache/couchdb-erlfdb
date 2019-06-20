@@ -217,15 +217,6 @@ block_until_ready(?IS_FUTURE = Future) ->
     end.
 
 
-flush_future_message(?IS_FUTURE = Future) ->
-    {erlfdb_future, MsgRef, _Res} = Future,
-    receive
-        {MsgRef, ready} -> ok
-    after
-        0 -> ok
-    end.
-
-
 wait(?IS_FUTURE = Future) ->
     wait(Future, []);
 
@@ -236,14 +227,10 @@ wait(Ready) ->
 wait(?IS_FUTURE = Future, Options) ->
     case is_ready(Future) of
         true ->
+            Result = get(Future),
             % Flush ready message if already sent
-            {erlfdb_future, MsgRef, _Res} = Future,
-            receive
-                {MsgRef, ready} -> ok
-            after 0 ->
-                ok
-            end,
-            get(Future);
+            flush_future_message(Future),
+            Result;
         false ->
             Timeout = erlfdb_util:get(Options, timeout, 5000),
             {erlfdb_future, MsgRef, _Res} = Future,
@@ -744,3 +731,12 @@ options_to_fold_st(StartKey, EndKey, Options) ->
         snapshot = erlfdb_util:get(Options, snapshot, false),
         reverse = Reverse
     }.
+
+
+flush_future_message(?IS_FUTURE = Future) ->
+    {erlfdb_future, MsgRef, _Res} = Future,
+    receive
+        {MsgRef, ready} -> ok
+    after
+        0 -> ok
+    end.
