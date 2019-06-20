@@ -84,8 +84,10 @@ erlfdb_future_cb(FDBFuture* fdb_future, void* data)
         caller = future->pid_env;
     }
 
-    msg = T2(future->msg_env, future->msg_ref, ATOM_ready);
-    enif_send(caller, &(future->pid), future->msg_env, msg);
+    if(!future->cancelled) {
+        msg = T2(future->msg_env, future->msg_ref, ATOM_ready);
+        enif_send(caller, &(future->pid), future->msg_env, msg);
+    }
 
     // We're now done with this future which means we need
     // to release our handle to it. See erlfdb_create_future
@@ -112,6 +114,7 @@ erlfdb_create_future(ErlNifEnv* env, FDBFuture* future, ErlFDBFutureType ftype)
     f->pid_env = env;
     f->msg_env = enif_alloc_env();
     f->msg_ref = enif_make_copy(f->msg_env, ref);
+    f->cancelled = false;
 
     // This resource reference counting dance is a bit
     // awkward as erlfdb_future_cb can be called both
@@ -620,6 +623,7 @@ erlfdb_future_cancel(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     }
     future = (ErlFDBFuture*) res;
 
+    future->cancelled = true;
     fdb_future_cancel(future->future);
 
     return ATOM_ok;

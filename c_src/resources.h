@@ -47,6 +47,7 @@ typedef struct _ErlFDBFuture
     ErlNifEnv* pid_env;
     ErlNifEnv* msg_env;
     ERL_NIF_TERM msg_ref;
+    bool cancelled;
 } ErlFDBFuture;
 
 
