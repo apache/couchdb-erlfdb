@@ -83,6 +83,10 @@ erlfdb_future_dtor(ErlNifEnv* env, void* obj)
     if(f->future != NULL) {
         fdb_future_destroy(f->future);
     }
+
+    if(f->msg_env != NULL) {
+        enif_free_env(f->msg_env);
+    }
 }
 
 
