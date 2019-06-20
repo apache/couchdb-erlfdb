@@ -32,6 +32,7 @@
     commit/1,
     reset/1,
     cancel/1,
+    cancel/2,
 
     % Future Specific functions
     is_ready/1,
@@ -189,6 +190,14 @@ cancel(?IS_TX = Tx) ->
     ok = erlfdb_nif:transaction_cancel(Tx).
 
 
+cancel(?IS_FUTURE = Future, Options) ->
+    ok = erlfdb_nif:future_cancel(Future),
+    case erlfdb_util:get(Options, flush, false) of
+        true -> flush_future_message(Future);
+        false -> ok
+    end.
+
+
 is_ready(?IS_FUTURE = Future) ->
     erlfdb_nif:future_is_ready(Future).
 
@@ -205,6 +214,15 @@ block_until_ready(?IS_FUTURE = Future) ->
     {erlfdb_future, MsgRef, _FRef} = Future,
     receive
         {MsgRef, ready} -> ok
+    end.
+
+
+flush_future_message(?IS_FUTURE = Future) ->
+    {erlfdb_future, MsgRef, _Res} = Future,
+    receive
+        {MsgRef, ready} -> ok
+    after
+        0 -> ok
     end.
 
 
