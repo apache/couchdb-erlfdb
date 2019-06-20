@@ -87,6 +87,12 @@ erlfdb_future_cb(FDBFuture* fdb_future, void* data)
     msg = T2(future->msg_env, future->msg_ref, ATOM_ready);
     enif_send(caller, &(future->pid), future->msg_env, msg);
 
+    // We're now done with this future which means we need
+    // to release our handle to it. See erlfdb_create_future
+    // for more on why this happens here.
+
+    enif_release_resource(future);
+
     return;
 }
 
@@ -107,6 +113,16 @@ erlfdb_create_future(ErlNifEnv* env, FDBFuture* future, ErlFDBFutureType ftype)
     f->msg_env = enif_alloc_env();
     f->msg_ref = enif_make_copy(f->msg_env, ref);
 
+    // This resource reference counting dance is a bit
+    // awkward as erlfdb_future_cb can be called both
+    // synchronously and asynchronously.
+    //
+    // At this point the reference count is 1
+
+    enif_keep_resource(f);
+
+    // The reference count is now 2
+
     err = fdb_future_set_callback(
             f->future,
             erlfdb_future_cb,
@@ -114,12 +130,32 @@ erlfdb_create_future(ErlNifEnv* env, FDBFuture* future, ErlFDBFutureType ftype)
         );
 
     if(err != 0) {
+        // If we failed to set the future callback function
+        // then we assume the callback was not invoked and
+        // we have to release twice
+        enif_release_resource(f);
         enif_release_resource(f);
         return erlfdb_erlang_error(env, err);
     }
 
+    // At this point our callback may have been called
+    // which means we could have a reference count
+    // of 1 or 2
+
     ret = enif_make_resource(env, f);
+
+    // enif_make_resource increases the ref count
+    // so now our reference count is either 2 or 3
+
     enif_release_resource(f);
+
+    // Finally our reference count is now either
+    // 1 or 2 depending on whether the callback
+    // has already fired. If the ref count is
+    // 2 then Erlang has a reference and the network
+    // thread has a reference. If its 1 then only
+    // Erlang has a reference.
+
     return T3(env, ATOM_erlfdb_future, ref, ret);
 }
 
