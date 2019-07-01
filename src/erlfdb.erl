@@ -32,6 +32,7 @@
     commit/1,
     reset/1,
     cancel/1,
+    cancel/2,
 
     % Future Specific functions
     is_ready/1,
@@ -189,6 +190,14 @@ cancel(?IS_TX = Tx) ->
     ok = erlfdb_nif:transaction_cancel(Tx).
 
 
+cancel(?IS_FUTURE = Future, Options) ->
+    ok = erlfdb_nif:future_cancel(Future),
+    case erlfdb_util:get(Options, flush, false) of
+        true -> flush_future_message(Future);
+        false -> ok
+    end.
+
+
 is_ready(?IS_FUTURE = Future) ->
     erlfdb_nif:future_is_ready(Future).
 
@@ -218,14 +227,10 @@ wait(Ready) ->
 wait(?IS_FUTURE = Future, Options) ->
     case is_ready(Future) of
         true ->
+            Result = get(Future),
             % Flush ready message if already sent
-            {erlfdb_future, MsgRef, _Res} = Future,
-            receive
-                {MsgRef, ready} -> ok
-            after 0 ->
-                ok
-            end,
-            get(Future);
+            flush_future_message(Future),
+            Result;
         false ->
             Timeout = erlfdb_util:get(Options, timeout, 5000),
             {erlfdb_future, MsgRef, _Res} = Future,
@@ -726,3 +731,12 @@ options_to_fold_st(StartKey, EndKey, Options) ->
         snapshot = erlfdb_util:get(Options, snapshot, false),
         reverse = Reverse
     }.
+
+
+flush_future_message(?IS_FUTURE = Future) ->
+    {erlfdb_future, MsgRef, _Res} = Future,
+    receive
+        {MsgRef, ready} -> ok
+    after
+        0 -> ok
+    end.
