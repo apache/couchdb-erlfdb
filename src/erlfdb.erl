@@ -62,7 +62,8 @@
     fold_range/5,
     fold_range/6,
 
-    get_range_raw/4,
+    fold_range_future/4,
+    fold_range_wait/4,
 
     % Data modifications
     set/3,
@@ -366,38 +367,19 @@ fold_range(?IS_SS = SS, StartKey, EndKey, Fun, Acc, Options) ->
     fold_range(?GET_TX(SS), StartKey, EndKey, Fun, Acc, SSOptions).
 
 
-get_range_raw(?IS_DB = Db, StartKey, EndKey, Options) ->
-    transactional(Db, fun(Tx) ->
-        get_range_raw(Tx, StartKey, EndKey, Options)
-    end);
+fold_range_future(?IS_TX = Tx, StartKey, EndKey, Options) ->
+    St = options_to_fold_st(StartKey, EndKey, Options),
+    fold_range_future_int(Tx, St);
 
-get_range_raw(?IS_TX = Tx, StartKey0, EndKey0, Options) ->
-    #fold_st{
-        start_key = StartKey,
-        end_key = EndKey,
-        limit = Limit,
-        target_bytes = TargetBytes,
-        streaming_mode = StreamingMode,
-        iteration = Iteration,
-        snapshot = Snapshot,
-        reverse = Reverse
-    } = options_to_fold_st(StartKey0, EndKey0, Options),
-
-    erlfdb_nif:transaction_get_range(
-            Tx,
-            StartKey,
-            EndKey,
-            Limit,
-            TargetBytes,
-            StreamingMode,
-            Iteration,
-            Snapshot,
-            Reverse
-        );
-
-get_range_raw(?IS_SS = SS, StartKey, EndKey, Options) ->
+fold_range_future(?IS_SS = SS, StartKey, EndKey, Options) ->
     SSOptions = [{snapshot, true} | Options],
-    get_range_raw(?GET_TX(SS), StartKey, EndKey, SSOptions).
+    fold_range_future(?GET_TX(SS), StartKey, EndKey, SSOptions).
+
+
+fold_range_wait(?IS_TX = Tx, {fold_info, _, _} = FI, Fun, Acc) ->
+    fold_range_int(Tx, FI, fun(Rows, InnerAcc) ->
+        lists:foldl(Fun, InnerAcc, Rows)
+    end, Acc).
 
 
 set(?IS_DB = Db, Key, Value) ->
@@ -656,28 +638,17 @@ fold_range_int(?IS_TX = Tx, StartKey, EndKey, Fun, Acc, Options) ->
 
 
 fold_range_int(Tx, #fold_st{} = St, Fun, Acc) ->
+    RangeFuture = fold_range_future_int(Tx, St),
+    fold_range_int(Tx, RangeFuture, Fun, Acc);
+
+fold_range_int(Tx, {fold_info, St, Future}, Fun, Acc) ->
     #fold_st{
         start_key = StartKey,
         end_key = EndKey,
         limit = Limit,
-        target_bytes = TargetBytes,
-        streaming_mode = StreamingMode,
         iteration = Iteration,
-        snapshot = Snapshot,
         reverse = Reverse
     } = St,
-
-    Future = erlfdb_nif:transaction_get_range(
-            Tx,
-            StartKey,
-            EndKey,
-            Limit,
-            TargetBytes,
-            StreamingMode,
-            Iteration,
-            Snapshot,
-            Reverse
-        ),
 
     {RawRows, Count, HasMore} = wait(Future),
 
@@ -713,6 +684,33 @@ fold_range_int(Tx, #fold_st{} = St, Fun, Acc) ->
         },
         fold_range_int(Tx, NewSt, Fun, NewAcc)
     end.
+
+
+fold_range_future_int(?IS_TX = Tx, #fold_st{} = St) ->
+    #fold_st{
+        start_key = StartKey,
+        end_key = EndKey,
+        limit = Limit,
+        target_bytes = TargetBytes,
+        streaming_mode = StreamingMode,
+        iteration = Iteration,
+        snapshot = Snapshot,
+        reverse = Reverse
+    } = St,
+
+    Future = erlfdb_nif:transaction_get_range(
+            Tx,
+            StartKey,
+            EndKey,
+            Limit,
+            TargetBytes,
+            StreamingMode,
+            Iteration,
+            Snapshot,
+            Reverse
+        ),
+
+    {fold_info, St, Future}.
 
 
 options_to_fold_st(StartKey, EndKey, Options) ->
