@@ -28,7 +28,6 @@ ATOM_MAP(not_found);
 
 ATOM_MAP(erlfdb_error);
 ATOM_MAP(erlfdb_future);
-ATOM_MAP(erlfdb_cluster);
 ATOM_MAP(erlfdb_database);
 ATOM_MAP(erlfdb_transaction);
 
@@ -39,6 +38,7 @@ ATOM_MAP(invalid_future_type);
 ATOM_MAP(local_address);
 ATOM_MAP(cluster_file);
 ATOM_MAP(trace_enable);
+ATOM_MAP(trace_format);
 ATOM_MAP(trace_roll_size);
 ATOM_MAP(trace_max_logs_size);
 ATOM_MAP(trace_log_group);
@@ -63,10 +63,6 @@ ATOM_MAP(external_client_directory);
 ATOM_MAP(disable_local_client);
 ATOM_MAP(disable_client_statistics_logging);
 ATOM_MAP(enable_slow_task_profiling);
-
-
-// Cluster Options
-// There aren't any...
 
 
 // Database Options

@@ -13,7 +13,7 @@
 #ifndef ERLFDB_FDB_H
 #define ERLFDB_FDB_H
 
-#define FDB_API_VERSION 600
+#define FDB_API_VERSION 610
 #include <foundationdb/fdb_c.h>
 
 #endif // Included fdb.h

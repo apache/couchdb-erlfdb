@@ -25,12 +25,7 @@
     future_get_error/1,
     future_get/1,
 
-    create_cluster/0,
-    create_cluster/1,
-    cluster_set_option/2,
-    cluster_set_option/3,
-    cluster_create_database/2,
-
+    create_database/1,
     database_set_option/2,
     database_set_option/3,
     database_create_transaction/1,
@@ -63,12 +58,11 @@
 ]).
 
 
--define(DEFAULT_API_VERSION, 600).
+-define(DEFAULT_API_VERSION, 610).
 
 
 -type error() :: {erlfdb_error, Code::integer()}.
 -type future() :: {erlfdb_future, reference(), reference()}.
--type cluster() :: {erlfdb_cluster, reference()}.
 -type database() :: {erlfdb_database, reference()}.
 -type transaction() :: {erlfdb_transaction, reference()}.
 
@@ -79,7 +73,6 @@
     {Key::binary(), OrEqual::boolean(), Offset::integer()}.
 
 -type future_result() ::
-    cluster() |
     database() |
     integer() |
     binary() |
@@ -91,6 +84,7 @@
     local_address |
     cluster_file |
     trace_enable |
+    trace_format |
     trace_roll_size |
     trace_max_logs_size |
     trace_log_group |
@@ -115,8 +109,6 @@
     disable_local_client |
     disable_client_statistics_logging |
     enable_slow_task_profiling.
-
--type cluster_option() :: there_are_no_cluster_options.
 
 -type database_option() ::
     location_cache_size |
@@ -211,16 +203,11 @@ future_get({erlfdb_future, _Ref, Ft}) ->
     erlfdb_future_get(Ft).
 
 
--spec create_cluster() -> future().
-create_cluster() ->
-    create_cluster(<<0>>).
+-spec create_database(ClusterFilePath::binary()) -> database().
+create_database(<<>>) ->
+    create_database(<<0>>);
 
-
--spec create_cluster(ClusterFilePath::binary()) -> future().
-create_cluster(<<>>) ->
-    create_cluster(<<0>>);
-
-create_cluster(ClusterFilePath) ->
+create_database(ClusterFilePath) ->
     Size = size(ClusterFilePath) - 1,
     % Make sure we pass a NULL-terminated string
     % to FoundationDB
@@ -230,26 +217,7 @@ create_cluster(ClusterFilePath) ->
         _ ->
             <<ClusterFilePath/binary, 0>>
     end,
-    erlfdb_create_cluster(NifPath).
-
-
--spec cluster_set_option(cluster(), Option::cluster_option()) -> ok.
-cluster_set_option(Cluster, Option) ->
-    cluster_set_option(Cluster, Option, <<>>).
-
-
--spec cluster_set_option(
-        cluster(),
-        Option::cluster_option(),
-        Value::option_value()
-    ) -> ok.
-cluster_set_option({erlfdb_cluster, Cluster}, Opt, Value) ->
-    erlfdb_cluster_set_option(Cluster, Opt, Value).
-
-
--spec cluster_create_database(cluster(), DbName::binary()) -> {ok, database()}.
-cluster_create_database({erlfdb_cluster, Cluster}, DbName) ->
-    erlfdb_cluster_create_database(Cluster, DbName).
+    erlfdb_create_database(NifPath).
 
 
 -spec database_set_option(database(), Option::database_option()) -> ok.
@@ -535,12 +503,8 @@ erlfdb_future_is_ready(_Future) -> ?NOT_LOADED.
 erlfdb_future_get_error(_Future) -> ?NOT_LOADED.
 erlfdb_future_get(_Future) -> ?NOT_LOADED.
 
-% Clusters
-erlfdb_create_cluster(_ClusterFile) -> ?NOT_LOADED.
-erlfdb_cluster_set_option(_Cluster, _ClusterOption, _Value) -> ?NOT_LOADED.
-erlfdb_cluster_create_database(_Cluster, _DbName) -> ?NOT_LOADED.
-
 % Databases
+erlfdb_create_database(_ClusterFilePath) -> ?NOT_LOADED.
 erlfdb_database_set_option(_Database, _DatabaseOption, _Value) -> ?NOT_LOADED.
 erlfdb_database_create_transaction(_Database) -> ?NOT_LOADED.
 
