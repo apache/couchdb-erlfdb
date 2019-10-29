@@ -66,6 +66,8 @@ erlfdb_get_key_selector(
         return 0;
     }
 
+    *offset = 0;
+
     if(arity >= 2) {
         if(IS_ATOM(tuple[1], lt)) {
             *or_equal = 0;
