@@ -47,3 +47,10 @@ ok
 4> erlfdb:get(Db, <<"bar">>).
 not_found
 ```
+
+Binding Tester
+---
+
+FoundationDB has a custom binding tester that can be used to test whether
+changes have broken compatibility. See the [BINDING_TESTER](BINDING_TESTER.md)
+documentation for instructions on building and running that system.

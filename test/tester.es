@@ -1,5 +1,4 @@
 #!/usr/bin/env escript
-%%! -pa /Users/davisp/github/labs-cloudant/couchdb-erlfdb/ebin
 
 -mode(compile).
 
