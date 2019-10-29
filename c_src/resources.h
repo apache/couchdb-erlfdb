@@ -20,7 +20,6 @@
 
 
 extern ErlNifResourceType* ErlFDBFutureRes;
-extern ErlNifResourceType* ErlFDBClusterRes;
 extern ErlNifResourceType* ErlFDBDatabaseRes;
 extern ErlNifResourceType* ErlFDBTransactionRes;
 
@@ -31,8 +30,6 @@ typedef enum _ErlFDBFutureType
     ErlFDB_FT_VOID,
     ErlFDB_FT_VERSION,
     ErlFDB_FT_KEY,
-    ErlFDB_FT_CLUSTER,
-    ErlFDB_FT_DATABASE,
     ErlFDB_FT_VALUE,
     ErlFDB_FT_STRING_ARRAY,
     ErlFDB_FT_KEYVALUE_ARRAY
@@ -49,12 +46,6 @@ typedef struct _ErlFDBFuture
     ERL_NIF_TERM msg_ref;
     bool cancelled;
 } ErlFDBFuture;
-
-
-typedef struct _ErlFDBCluster
-{
-    FDBCluster* cluster;
-} ErlFDBCluster;
 
 
 typedef struct _ErlFDBDatabase
@@ -74,7 +65,6 @@ typedef struct _ErlFDBTransaction
 
 int erlfdb_init_resources(ErlNifEnv* env);
 void erlfdb_future_dtor(ErlNifEnv* env, void* obj);
-void erlfdb_cluster_dtor(ErlNifEnv* env, void* obj);
 void erlfdb_database_dtor(ErlNifEnv* env, void* obj);
 void erlfdb_transaction_dtor(ErlNifEnv* env, void* obj);
 

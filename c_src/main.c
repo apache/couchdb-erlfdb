@@ -217,52 +217,6 @@ erlfdb_future_get_key(ErlNifEnv* env, ErlFDBFuture* f)
 
 
 static inline ERL_NIF_TERM
-erlfdb_future_get_cluster(ErlNifEnv* env, ErlFDBFuture* f)
-{
-    FDBCluster* cluster;
-    ErlFDBCluster* c;
-    ERL_NIF_TERM ret;
-    fdb_error_t err;
-
-    err = fdb_future_get_cluster(f->future, &cluster);
-    if(err != 0) {
-        return erlfdb_erlang_error(env, err);
-    }
-
-    c = enif_alloc_resource(ErlFDBClusterRes, sizeof(ErlFDBCluster));
-    c->cluster = cluster;
-
-    ret = enif_make_resource(env, c);
-    enif_release_resource(c);
-
-    return T2(env, ATOM_erlfdb_cluster, ret);
-}
-
-
-static inline ERL_NIF_TERM
-erlfdb_future_get_database(ErlNifEnv* env, ErlFDBFuture* f)
-{
-    FDBDatabase* database;
-    ErlFDBDatabase* d;
-    ERL_NIF_TERM ret;
-    fdb_error_t err;
-
-    err = fdb_future_get_database(f->future, &database);
-    if(err != 0) {
-        return erlfdb_erlang_error(env, err);
-    }
-
-    d = enif_alloc_resource(ErlFDBDatabaseRes, sizeof(ErlFDBDatabase));
-    d->database = database;
-
-    ret = enif_make_resource(env, d);
-    enif_release_resource(d);
-
-    return T2(env, ATOM_erlfdb_database, ret);
-}
-
-
-static inline ERL_NIF_TERM
 erlfdb_future_get_value(ErlNifEnv* env, ErlFDBFuture* f)
 {
     fdb_bool_t present;
@@ -497,6 +451,8 @@ erlfdb_network_set_option(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         option = FDB_NET_OPTION_CLUSTER_FILE;
     } else if(IS_ATOM(argv[0], trace_enable)) {
         option = FDB_NET_OPTION_TRACE_ENABLE;
+    } else if(IS_ATOM(argv[0], trace_format)) {
+        option = FDB_NET_OPTION_TRACE_FORMAT;
     } else if(IS_ATOM(argv[0], trace_roll_size)) {
         option = FDB_NET_OPTION_TRACE_ROLL_SIZE;
     } else if(IS_ATOM(argv[0], trace_max_logs_size)) {
@@ -711,10 +667,6 @@ erlfdb_future_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         return erlfdb_future_get_version(env, f);
     } else if(f->ftype == ErlFDB_FT_KEY) {
         return erlfdb_future_get_key(env, f);
-    } else if(f->ftype == ErlFDB_FT_CLUSTER) {
-        return erlfdb_future_get_cluster(env, f);
-    } else if(f->ftype == ErlFDB_FT_DATABASE) {
-        return erlfdb_future_get_database(env, f);
     } else if(f->ftype == ErlFDB_FT_VALUE) {
         return erlfdb_future_get_value(env, f);
     } else if(f->ftype == ErlFDB_FT_STRING_ARRAY) {
@@ -728,11 +680,15 @@ erlfdb_future_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
 
 static ERL_NIF_TERM
-erlfdb_create_cluster(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+erlfdb_create_database(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
-    FDBFuture* future;
     ErlNifBinary bin;
+    FDBDatabase* database;
+    fdb_error_t err;
+    ErlFDBDatabase* d;
+    ERL_NIF_TERM ret;
+
 
     if(st->lib_state != ErlFDB_CONNECTED) {
         return enif_make_badarg(env);
@@ -750,62 +706,18 @@ erlfdb_create_cluster(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         return enif_make_badarg(env);
     }
 
-    future = fdb_create_cluster((const char*) bin.data);
-
-    return erlfdb_create_future(env, future, ErlFDB_FT_CLUSTER);
-}
-
-
-static ERL_NIF_TERM
-erlfdb_cluster_set_option(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
-{
-    // There are currently no valid cluster options
-    return enif_make_badarg(env);
-}
-
-
-static ERL_NIF_TERM
-erlfdb_cluster_create_database(
-        ErlNifEnv* env,
-        int argc,
-        const ERL_NIF_TERM argv[]
-    )
-{
-    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
-    ErlFDBCluster* c;
-    FDBFuture* future;
-    ErlNifBinary bin;
-    void* res;
-
-    if(st->lib_state != ErlFDB_CONNECTED) {
-        return enif_make_badarg(env);
+    err = fdb_create_database((const char*) bin.data, &database);
+    if(err != 0) {
+        return erlfdb_erlang_error(env, err);
     }
 
-    if(argc != 2) {
-        return enif_make_badarg(env);
-    }
+    d = enif_alloc_resource(ErlFDBDatabaseRes, sizeof(ErlFDBDatabase));
+    d->database = database;
 
-    if(!enif_get_resource(env, argv[0], ErlFDBClusterRes, &res)) {
-        return enif_make_badarg(env);
-    }
-    c = (ErlFDBCluster*) res;
+    ret = enif_make_resource(env, d);
+    enif_release_resource(d);
 
-    if(!enif_inspect_binary(env, argv[1], &bin)) {
-        return enif_make_badarg(env);
-    }
-
-    // FoundationDB requires a dbname that is "DB"
-    if(bin.size != 2 || bin.data[0] != 'D' || bin.data[1] != 'B') {
-        return enif_make_badarg(env);
-    }
-
-    future = fdb_cluster_create_database(
-            c->cluster,
-            (const uint8_t*) bin.data,
-            bin.size
-        );
-
-    return erlfdb_create_future(env, future, ErlFDB_FT_DATABASE);
+    return T2(env, ATOM_erlfdb_database, ret);
 }
 
 
@@ -2068,10 +1980,7 @@ static ErlNifFunc funcs[] =
     NIF_FUNC(erlfdb_future_get_error, 1),
     NIF_FUNC(erlfdb_future_get, 1),
 
-    NIF_FUNC(erlfdb_create_cluster, 1),
-    NIF_FUNC(erlfdb_cluster_set_option, 3),
-    NIF_FUNC(erlfdb_cluster_create_database, 2),
-
+    NIF_FUNC(erlfdb_create_database, 1),
     NIF_FUNC(erlfdb_database_set_option, 3),
     NIF_FUNC(erlfdb_database_create_transaction, 1),
 

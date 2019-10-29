@@ -18,7 +18,7 @@
     {maintainers, ["Paul J. Davis"]},
     {links, [{"GitHub", "https://github.com/cloudant-labs/couchdb-erlfdb"}]},
     {env, [
-        {api_version, 600},
+        {api_version, 610},
         {network_options, []}
     ]}
 ]}.

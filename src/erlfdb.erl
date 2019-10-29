@@ -142,8 +142,7 @@ open() ->
 
 
 open(ClusterFile) ->
-    Cluster = wait(erlfdb_nif:create_cluster(ClusterFile)),
-    wait(erlfdb_nif:cluster_create_database(Cluster, <<"DB">>)).
+    erlfdb_nif:create_database(ClusterFile).
 
 
 create_transaction(?IS_DB = Db) ->

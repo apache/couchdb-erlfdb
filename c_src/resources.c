@@ -14,7 +14,6 @@
 
 
 ErlNifResourceType* ErlFDBFutureRes;
-ErlNifResourceType* ErlFDBClusterRes;
 ErlNifResourceType* ErlFDBDatabaseRes;
 ErlNifResourceType* ErlFDBTransactionRes;
 
@@ -32,18 +31,6 @@ erlfdb_init_resources(ErlNifEnv* env)
             NULL
         );
     if(ErlFDBFutureRes == NULL) {
-        return 0;
-    }
-
-    ErlFDBClusterRes = enif_open_resource_type(
-            env,
-            NULL,
-            "erlfdb_cluster",
-            erlfdb_cluster_dtor,
-            ERL_NIF_RT_CREATE,
-            NULL
-        );
-    if(ErlFDBClusterRes == NULL) {
         return 0;
     }
 
@@ -86,17 +73,6 @@ erlfdb_future_dtor(ErlNifEnv* env, void* obj)
 
     if(f->msg_env != NULL) {
         enif_free_env(f->msg_env);
-    }
-}
-
-
-void
-erlfdb_cluster_dtor(ErlNifEnv* env, void* obj)
-{
-    ErlFDBCluster* c = (ErlFDBCluster*) obj;
-
-    if(c->cluster != NULL) {
-        fdb_cluster_destroy(c->cluster);
     }
 }
 
