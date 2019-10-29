@@ -22,7 +22,10 @@
     get/2,
     get/3,
 
-    repr/1
+    repr/1,
+
+    debug_cluster/1,
+    debug_cluster/3
 ]).
 
 
@@ -76,6 +79,19 @@ repr(Bin) when is_binary(Bin) ->
             _ -> io_lib:format("\\x~2.16.0b", [C])
         end
     end, binary_to_list(Bin)) ++ [$'].
+
+
+debug_cluster(Tx) ->
+    debug_cluster(Tx, <<>>, <<16#FE, 16#FF, 16#FF>>).
+
+
+debug_cluster(Tx, Start, End) ->
+    lists:foreach(fun({Key, Val}) ->
+        io:format(standard_error, "~s => ~s~n", [
+                string:pad(erlfdb_util:repr(Key), 60),
+                repr(Val)
+            ])
+    end, erlfdb:get_range(Tx, Start, End)).
 
 
 init_test_cluster_int(Options) ->
