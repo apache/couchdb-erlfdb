@@ -97,6 +97,7 @@ ATOM_MAP(snapshot_ryw_disable);
 ATOM_MAP(lock_aware);
 ATOM_MAP(used_during_commit_protection_disable);
 ATOM_MAP(read_lock_aware);
+ATOM_MAP(size_limit);
 
 
 // Streaming mode

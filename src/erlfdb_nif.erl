@@ -52,13 +52,14 @@
     transaction_add_conflict_range/4,
     transaction_get_next_tx_id/1,
     transaction_is_read_only/1,
+    transaction_get_approximate_size/1,
 
     get_error/1,
     error_predicate/2
 ]).
 
 
--define(DEFAULT_API_VERSION, 610).
+-define(DEFAULT_API_VERSION, 620).
 
 
 -type error() :: {erlfdb_error, Code::integer()}.
@@ -140,7 +141,9 @@
     snapshot_ryw_disable |
     lock_aware |
     used_during_commit_protection_disable |
-    read_lock_aware.
+    read_lock_aware |
+    size_limit.
+
 
 -type streaming_mode() ::
     stream_want_all |
@@ -409,6 +412,11 @@ transaction_add_conflict_range(
     erlfdb_transaction_add_conflict_range(Tx, StartKey, EndKey, ConflictType).
 
 
+-spec transaction_get_approximate_size(transaction()) -> non_neg_integer().
+transaction_get_approximate_size({erlfdb_transaction, Tx}) ->
+    erlfdb_transaction_get_approximate_size(Tx).
+
+
 -spec transaction_get_next_tx_id(transaction()) -> non_neg_integer().
 transaction_get_next_tx_id({erlfdb_transaction, Tx}) ->
     erlfdb_transaction_get_next_tx_id(Tx).
@@ -559,6 +567,7 @@ erlfdb_transaction_add_conflict_range(
     ) -> ?NOT_LOADED.
 erlfdb_transaction_get_next_tx_id(_Transaction) -> ?NOT_LOADED.
 erlfdb_transaction_is_read_only(_Transaction) -> ?NOT_LOADED.
+erlfdb_transaction_get_approximate_size(_Transaction) -> ?NOT_LOADED.
 
 
 % Misc

@@ -103,6 +103,9 @@
     get_committed_version/1,
     get_versionstamp/1,
 
+    % Transaction size info
+    get_approximate_size/1,
+
     % Transaction status
     get_next_tx_id/1,
     is_read_only/1,
@@ -566,6 +569,13 @@ get_versionstamp(?IS_TX = Tx) ->
 
 get_versionstamp(?IS_SS = SS) ->
     get_versionstamp(?GET_TX(SS)).
+
+
+get_approximate_size(?IS_TX = Tx) ->
+    erlfdb_nif:transaction_get_approximate_size(Tx);
+
+get_approximate_size(?IS_SS = SS) ->
+    get_approximate_size(?GET_TX(SS)).
 
 
 get_next_tx_id(?IS_TX = Tx) ->

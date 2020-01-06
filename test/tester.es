@@ -651,6 +651,11 @@ execute(TxObj, St, <<"GET_VERSIONSTAMP">>) ->
     stack_push(St, VS),
     St;
 
+execute(TxObj, St, <<"GET_APPROXIMATE_SIZE">>) ->
+    erlfdb:wait(erlfdb:get_approximate_size(TxObj)),
+    stack_push(St, <<"GOT_APPROXIMATE_SIZE">>),
+    St;
+
 execute(_TxObj, St, <<"TUPLE_PACK">>) ->
     Count = stack_pop(St),
     Elems = stack_pop(St, Count),
