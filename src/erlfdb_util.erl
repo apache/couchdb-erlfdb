@@ -177,6 +177,7 @@ find_fdbserver_bin(Options) ->
         undefined ->
             [
                 <<"/usr/sbin/fdbserver">>,
+                <<"/usr/local/bin/fdbserver">>,
                 <<"/usr/local/sbin/fdbserver">>,
                 <<"/usr/local/libexec/fdbserver">>
             ];
