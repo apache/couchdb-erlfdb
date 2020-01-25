@@ -33,6 +33,7 @@ ATOM_MAP(erlfdb_transaction);
 
 ATOM_MAP(invalid_future_type);
 
+ATOM_MAP(writes_not_allowed);
 
 // Network Options
 ATOM_MAP(local_address);
@@ -98,6 +99,8 @@ ATOM_MAP(lock_aware);
 ATOM_MAP(used_during_commit_protection_disable);
 ATOM_MAP(read_lock_aware);
 ATOM_MAP(size_limit);
+ATOM_MAP(allow_writes);
+ATOM_MAP(disallow_writes);
 
 
 // Streaming mode

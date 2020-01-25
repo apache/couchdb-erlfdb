@@ -109,6 +109,7 @@
     % Transaction status
     get_next_tx_id/1,
     is_read_only/1,
+    get_writes_allowed/1,
 
     % Locality
     get_addresses_for_key/2,
@@ -590,6 +591,13 @@ is_read_only(?IS_TX = Tx) ->
 
 is_read_only(?IS_SS = SS) ->
     is_read_only(?GET_TX(SS)).
+
+
+get_writes_allowed(?IS_TX = Tx) ->
+    erlfdb_nif:transaction_get_writes_allowed(Tx);
+
+get_writes_allowed(?IS_SS = SS) ->
+    get_writes_allowed(?GET_TX(SS)).
 
 
 get_addresses_for_key(?IS_DB = Db, Key) ->

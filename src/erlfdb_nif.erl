@@ -52,6 +52,7 @@
     transaction_add_conflict_range/4,
     transaction_get_next_tx_id/1,
     transaction_is_read_only/1,
+    transaction_get_writes_allowed/1,
     transaction_get_approximate_size/1,
 
     get_error/1,
@@ -142,7 +143,9 @@
     lock_aware |
     used_during_commit_protection_disable |
     read_lock_aware |
-    size_limit.
+    size_limit |
+    allow_writes |
+    disallow_writes.
 
 
 -type streaming_mode() ::
@@ -427,6 +430,11 @@ transaction_is_read_only({erlfdb_transaction, Tx}) ->
     erlfdb_transaction_is_read_only(Tx).
 
 
+-spec transaction_get_writes_allowed(transaction()) -> true | false.
+transaction_get_writes_allowed({erlfdb_transaction, Tx}) ->
+    erlfdb_transaction_get_writes_allowed(Tx).
+
+
 -spec get_error(integer()) -> binary().
 get_error(Error) ->
     erlfdb_get_error(Error).
@@ -567,6 +575,7 @@ erlfdb_transaction_add_conflict_range(
     ) -> ?NOT_LOADED.
 erlfdb_transaction_get_next_tx_id(_Transaction) -> ?NOT_LOADED.
 erlfdb_transaction_is_read_only(_Transaction) -> ?NOT_LOADED.
+erlfdb_transaction_get_writes_allowed(_Transaction) -> ?NOT_LOADED.
 erlfdb_transaction_get_approximate_size(_Transaction) -> ?NOT_LOADED.
 
 

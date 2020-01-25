@@ -60,6 +60,7 @@ typedef struct _ErlFDBTransaction
     ERL_NIF_TERM owner;
     unsigned int txid;
     bool read_only;
+    bool writes_allowed;
 } ErlFDBTransaction;
 
 
