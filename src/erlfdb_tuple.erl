@@ -252,7 +252,10 @@ encode(Double, _) when is_float(Double) ->
 encode(Tuple, Depth) when is_tuple(Tuple) ->
     Elems = tuple_to_list(Tuple),
     Encoded = [encode(E, Depth + 1) || E <- Elems],
-    [<<?NESTED>>, Encoded, <<?NULL>>].
+    [<<?NESTED>>, Encoded, <<?NULL>>];
+
+encode(BadTerm, _) ->
+    erlang:error({invalid_tuple_term, BadTerm}).
 
 
 enc_null_terminated(Bin) ->
