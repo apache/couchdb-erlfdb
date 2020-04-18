@@ -156,7 +156,8 @@ create_transaction(?IS_DB = Db) ->
 
 transactional(?IS_DB = Db, UserFun) when is_function(UserFun, 1) ->
     clear_erlfdb_error(),
-    do_transaction(Db, UserFun);
+    Tx = create_transaction(Db),
+    do_transaction(Tx, UserFun);
 
 transactional(?IS_TX = Tx, UserFun) when is_function(UserFun, 1) ->
     UserFun(Tx);
@@ -641,8 +642,7 @@ clear_erlfdb_error() ->
     put(?ERLFDB_ERROR, undefined).
 
 
-do_transaction(Db, UserFun) ->
-    Tx = create_transaction(Db),
+do_transaction(?IS_TX = Tx, UserFun) ->
     try
         Ret = UserFun(Tx),
         wait(commit(Tx)),
@@ -650,7 +650,7 @@ do_transaction(Db, UserFun) ->
     catch error:{erlfdb_error, Code} ->
         put(?ERLFDB_ERROR, Code),
         wait(on_error(Tx, Code)),
-        do_transaction(Db, UserFun)
+        do_transaction(Tx, UserFun)
     end.
 
 
