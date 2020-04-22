@@ -653,7 +653,10 @@ clear_erlfdb_error() ->
 do_transaction(?IS_TX = Tx, UserFun) ->
     try
         Ret = UserFun(Tx),
-        wait(commit(Tx)),
+        case is_read_only(Tx) andalso not has_watches(Tx) of
+            true -> ok;
+            false -> wait(commit(Tx))
+        end,
         Ret
     catch error:{erlfdb_error, Code} ->
         put(?ERLFDB_ERROR, Code),
