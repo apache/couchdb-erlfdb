@@ -1,0 +1,4 @@
+notifications:
+    commits: commits@couchdb.apache.org
+    issues: notifications@couchdb.apache.org
+    pullrequests: notifications@couchdb.apache.org
