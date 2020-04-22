@@ -61,6 +61,7 @@ typedef struct _ErlFDBTransaction
     unsigned int txid;
     bool read_only;
     bool writes_allowed;
+    bool has_watches;
 } ErlFDBTransaction;
 
 

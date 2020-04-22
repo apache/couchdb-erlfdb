@@ -52,6 +52,7 @@
     transaction_add_conflict_range/4,
     transaction_get_next_tx_id/1,
     transaction_is_read_only/1,
+    transaction_has_watches/1,
     transaction_get_writes_allowed/1,
     transaction_get_approximate_size/1,
 
@@ -430,6 +431,11 @@ transaction_is_read_only({erlfdb_transaction, Tx}) ->
     erlfdb_transaction_is_read_only(Tx).
 
 
+-spec transaction_has_watches(transaction()) -> true | false.
+transaction_has_watches({erlfdb_transaction, Tx}) ->
+    erlfdb_transaction_has_watches(Tx).
+
+
 -spec transaction_get_writes_allowed(transaction()) -> true | false.
 transaction_get_writes_allowed({erlfdb_transaction, Tx}) ->
     erlfdb_transaction_get_writes_allowed(Tx).
@@ -575,6 +581,7 @@ erlfdb_transaction_add_conflict_range(
     ) -> ?NOT_LOADED.
 erlfdb_transaction_get_next_tx_id(_Transaction) -> ?NOT_LOADED.
 erlfdb_transaction_is_read_only(_Transaction) -> ?NOT_LOADED.
+erlfdb_transaction_has_watches(_Transaction) -> ?NOT_LOADED.
 erlfdb_transaction_get_writes_allowed(_Transaction) -> ?NOT_LOADED.
 erlfdb_transaction_get_approximate_size(_Transaction) -> ?NOT_LOADED.
 

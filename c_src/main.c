@@ -818,6 +818,7 @@ erlfdb_database_create_transaction(
     t->txid = 0;
     t->read_only = true;
     t->writes_allowed = true;
+    t->has_watches = false;
 
     ret = enif_make_resource(env, t);
     enif_release_resource(t);
@@ -1659,6 +1660,13 @@ erlfdb_transaction_watch(
         return enif_make_badarg(env);
     }
 
+    // In order for the watches to fire the transaction must commit, even if it
+    // is a read-only transaction. So if writes are explicitly disallowed, also
+    // do not allow setting any watches.
+    if(!t->writes_allowed) {
+        return enif_raise_exception(env, ATOM_writes_not_allowed);
+    }
+
     if(!enif_inspect_binary(env, argv[1], &key)) {
         return enif_make_badarg(env);
     }
@@ -1669,6 +1677,7 @@ erlfdb_transaction_watch(
             key.size
         );
 
+    t->has_watches = true;
     return erlfdb_create_future(env, future, ErlFDB_FT_VOID);
 }
 
@@ -1748,6 +1757,7 @@ erlfdb_transaction_reset(
 
     t->txid = 0;
     t->read_only = true;
+    t->has_watches = false;
 
     return ATOM_ok;
 }
@@ -1967,6 +1977,42 @@ erlfdb_transaction_is_read_only(
 
 
 static ERL_NIF_TERM
+erlfdb_transaction_has_watches(
+        ErlNifEnv* env,
+        int argc,
+        const ERL_NIF_TERM argv[]
+    )
+{
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    ErlFDBTransaction* t;
+    void* res;
+
+    if(st->lib_state != ErlFDB_CONNECTED) {
+        return enif_make_badarg(env);
+    }
+
+    if(argc != 1) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_resource(env, argv[0], ErlFDBTransactionRes, &res)) {
+        return enif_make_badarg(env);
+    }
+    t = (ErlFDBTransaction*) res;
+
+    if(!erlfdb_transaction_is_owner(env, t)) {
+        return enif_make_badarg(env);
+    }
+
+    if(t->has_watches) {
+        return ATOM_true;
+    } else {
+        return ATOM_false;
+    }
+}
+
+
+static ERL_NIF_TERM
 erlfdb_transaction_get_writes_allowed(
         ErlNifEnv* env,
         int argc,
@@ -2111,6 +2157,7 @@ static ErlNifFunc funcs[] =
     NIF_FUNC(erlfdb_transaction_get_approximate_size, 1),
     NIF_FUNC(erlfdb_transaction_get_next_tx_id, 1),
     NIF_FUNC(erlfdb_transaction_is_read_only, 1),
+    NIF_FUNC(erlfdb_transaction_has_watches, 1),
     NIF_FUNC(erlfdb_transaction_get_writes_allowed, 1),
 
     NIF_FUNC(erlfdb_get_error, 1),
