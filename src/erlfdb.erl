@@ -109,6 +109,7 @@
     % Transaction status
     get_next_tx_id/1,
     is_read_only/1,
+    has_watches/1,
     get_writes_allowed/1,
 
     % Locality
@@ -592,6 +593,13 @@ is_read_only(?IS_TX = Tx) ->
 
 is_read_only(?IS_SS = SS) ->
     is_read_only(?GET_TX(SS)).
+
+
+has_watches(?IS_TX = Tx) ->
+    erlfdb_nif:transaction_has_watches(Tx);
+
+has_watches(?IS_SS = SS) ->
+    has_watches(?GET_TX(SS)).
 
 
 get_writes_allowed(?IS_TX = Tx) ->

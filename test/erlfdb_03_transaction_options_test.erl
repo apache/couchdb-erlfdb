@@ -59,5 +59,28 @@ once_writes_happend_cannot_disallow_them_test() ->
     end)).
 
 
+has_watches_test() ->
+    Db1 = erlfdb_util:get_test_db(),
+    {Before, After, AfterReset} = (erlfdb:transactional(Db1, fun(Tx) ->
+        Before = erlfdb:has_watches(Tx),
+        erlfdb:watch(Tx, gen(10)),
+        After = erlfdb:has_watches(Tx),
+        erlfdb:reset(Tx),
+        AfterReset = erlfdb:has_watches(Tx),
+        {Before, After, AfterReset}
+    end)),
+    ?assert(not Before),
+    ?assert(After),
+    ?assert(not AfterReset).
+
+
+cannot_set_watches_if_writes_disallowed_test() ->
+    Db1 = erlfdb_util:get_test_db(),
+    ?assertError(writes_not_allowed, erlfdb:transactional(Db1, fun(Tx) ->
+        erlfdb:set_option(Tx, disallow_writes),
+        erlfdb:watch(Tx, gen(10))
+    end)).
+
+
 gen(Size) ->
     crypto:strong_rand_bytes(Size).
