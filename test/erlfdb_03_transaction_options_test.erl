@@ -90,5 +90,6 @@ size_limit_on_db_handle_test() ->
     end)).
 
 
-gen(Size) ->
-    crypto:strong_rand_bytes(Size).
+gen(Size) when is_integer(Size), Size > 1 ->
+    RandBin = crypto:strong_rand_bytes(Size - 1),
+    <<0, RandBin/binary>>.
