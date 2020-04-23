@@ -82,5 +82,13 @@ cannot_set_watches_if_writes_disallowed_test() ->
     end)).
 
 
+size_limit_on_db_handle_test() ->
+    Db1 = erlfdb_util:get_test_db(),
+    erlfdb:set_option(Db1, size_limit, 10000),
+    ?assertError({erlfdb_error, 2101}, erlfdb:transactional(Db1, fun(Tx) ->
+         erlfdb:set(Tx, gen(10), gen(11000))
+    end)).
+
+
 gen(Size) ->
     crypto:strong_rand_bytes(Size).

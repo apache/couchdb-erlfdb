@@ -78,6 +78,7 @@ ATOM_MAP(causal_write_risky);
 ATOM_MAP(causal_read_risky);
 ATOM_MAP(causal_read_disable);
 ATOM_MAP(next_write_no_write_conflict_range);
+ATOM_MAP(read_your_writes_enable);
 ATOM_MAP(read_your_writes_disable);
 ATOM_MAP(read_ahead_disable);
 ATOM_MAP(durability_datacenter);
@@ -90,6 +91,9 @@ ATOM_MAP(access_system_keys);
 ATOM_MAP(read_system_keys);
 ATOM_MAP(debug_retry_logging);
 ATOM_MAP(transaction_logging_enable);
+ATOM_MAP(debug_transaction_identifier);
+ATOM_MAP(transaction_logging_max_field_length);
+ATOM_MAP(log_transaction);
 ATOM_MAP(timeout);
 ATOM_MAP(retry_limit);
 ATOM_MAP(max_retry_delay);
@@ -101,6 +105,8 @@ ATOM_MAP(read_lock_aware);
 ATOM_MAP(size_limit);
 ATOM_MAP(allow_writes);
 ATOM_MAP(disallow_writes);
+ATOM_MAP(include_port_in_address);
+ATOM_MAP(use_provisional_proxies);
 
 
 // Streaming mode

@@ -752,7 +752,24 @@ erlfdb_database_set_option(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         option = FDB_DB_OPTION_MACHINE_ID;
     } else if(IS_ATOM(argv[1], datacenter_id)) {
         option = FDB_DB_OPTION_DATACENTER_ID;
-    } else {
+    } else if(IS_ATOM(argv[1], read_your_writes_enable)) {
+        option = FDB_DB_OPTION_SNAPSHOT_RYW_ENABLE;
+    } else if(IS_ATOM(argv[1], read_your_writes_disable)) {
+        option = FDB_DB_OPTION_SNAPSHOT_RYW_DISABLE;
+    } else if(IS_ATOM(argv[1], transaction_logging_max_field_length)) {
+        option = FDB_DB_OPTION_TRANSACTION_LOGGING_MAX_FIELD_LENGTH;
+    } else if(IS_ATOM(argv[1], timeout)) {
+        option = FDB_DB_OPTION_TRANSACTION_TIMEOUT;
+    } else if(IS_ATOM(argv[1], retry_limit)) {
+        option = FDB_DB_OPTION_TRANSACTION_RETRY_LIMIT;
+    } else if(IS_ATOM(argv[1], max_retry_delay)) {
+        option = FDB_DB_OPTION_TRANSACTION_MAX_RETRY_DELAY;
+    } else if(IS_ATOM(argv[1], size_limit)) {
+        option = FDB_DB_OPTION_TRANSACTION_SIZE_LIMIT;
+    } else if(IS_ATOM(argv[1], causal_read_risky)) {
+        option = FDB_DB_OPTION_TRANSACTION_CAUSAL_READ_RISKY;
+    } else if(IS_ATOM(argv[1], include_port_in_address)) {
+        option = FDB_DB_OPTION_TRANSACTION_INCLUDE_PORT_IN_ADDRESS;
         return enif_make_badarg(env);
     }
 
@@ -875,6 +892,8 @@ erlfdb_transaction_set_option(
         option = FDB_TR_OPTION_CAUSAL_READ_RISKY;
     } else if(IS_ATOM(argv[1], causal_read_disable)) {
         option = FDB_TR_OPTION_CAUSAL_READ_DISABLE;
+    } else if(IS_ATOM(argv[1], include_port_in_address)) {
+        option = FDB_TR_OPTION_INCLUDE_PORT_IN_ADDRESS;
     } else if(IS_ATOM(argv[1], next_write_no_write_conflict_range)) {
         option = FDB_TR_OPTION_NEXT_WRITE_NO_WRITE_CONFLICT_RANGE;
     } else if(IS_ATOM(argv[1], read_your_writes_disable)) {
@@ -901,6 +920,12 @@ erlfdb_transaction_set_option(
         option = FDB_TR_OPTION_DEBUG_RETRY_LOGGING;
     } else if(IS_ATOM(argv[1], transaction_logging_enable)) {
         option = FDB_TR_OPTION_TRANSACTION_LOGGING_ENABLE;
+    } else if(IS_ATOM(argv[1], debug_transaction_identifier)) {
+        option = FDB_TR_OPTION_DEBUG_TRANSACTION_IDENTIFIER;
+    } else if(IS_ATOM(argv[1], log_transaction)) {
+        option = FDB_TR_OPTION_LOG_TRANSACTION;
+    } else if(IS_ATOM(argv[1], transaction_logging_max_field_length)) {
+        option = FDB_TR_OPTION_TRANSACTION_LOGGING_MAX_FIELD_LENGTH;
     } else if(IS_ATOM(argv[1], timeout)) {
         option = FDB_TR_OPTION_TIMEOUT;
     } else if(IS_ATOM(argv[1], retry_limit)) {
@@ -919,6 +944,8 @@ erlfdb_transaction_set_option(
         option = FDB_TR_OPTION_READ_LOCK_AWARE;
     } else if(IS_ATOM(argv[1], size_limit)) {
         option = FDB_TR_OPTION_SIZE_LIMIT;
+    } else if(IS_ATOM(argv[1], use_provisional_proxies)) {
+        option = FDB_TR_OPTION_USE_PROVISIONAL_PROXIES;
     } else {
         return enif_make_badarg(env);
     }

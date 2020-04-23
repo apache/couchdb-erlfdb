@@ -238,7 +238,8 @@ database_set_option(Database, Option) ->
         Value::option_value()
     ) -> ok.
 database_set_option({erlfdb_database, Db}, Opt, Val) ->
-    erlfdb_database_set_option(Db, Opt, Val).
+    BinVal = option_val_to_binary(Val),
+    erlfdb_database_set_option(Db, Opt, BinVal).
 
 
 -spec database_create_transaction(database()) ->
@@ -258,10 +259,7 @@ transaction_set_option(Transaction, Option) ->
         Value::option_value()
     ) -> ok.
 transaction_set_option({erlfdb_transaction, Tx}, Opt, Val) ->
-    BinVal = case Val of
-        B when is_binary(B) -> B;
-        I when is_integer(I) -> <<I:8/little-unsigned-integer-unit:8>>
-    end,
+    BinVal = option_val_to_binary(Val),
     erlfdb_transaction_set_option(Tx, Opt, BinVal).
 
 
@@ -450,6 +448,14 @@ get_error(Error) ->
         boolean().
 error_predicate(Predicate, Error) ->
     erlfdb_error_predicate(Predicate, Error).
+
+
+-spec option_val_to_binary(binary() | integer()) -> binary().
+option_val_to_binary(Val) when is_binary(Val) ->
+    Val;
+
+option_val_to_binary(Val) when is_integer(Val) ->
+    <<Val:8/little-unsigned-integer-unit:8>>.
 
 
 init() ->
