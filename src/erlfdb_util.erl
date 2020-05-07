@@ -197,7 +197,7 @@ write_cluster_file(FileName, ClusterName, ClusterId, IpAddr, Port) ->
 
 
 get_monitor_path() ->
-    PrivDir = case code:priv_dir(?MODULE) of
+    PrivDir = case code:priv_dir(erlfdb) of
         {error, _} ->
             EbinDir = filename:dirname(code:which(?MODULE)),
             AppPath = filename:dirname(EbinDir),
