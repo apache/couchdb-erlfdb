@@ -94,6 +94,21 @@
 -define(UNSET_VERSIONSTAMP80, <<16#FFFFFFFFFFFFFFFFFFFF:80>>).
 -define(UNSET_VERSIONSTAMP96, <<16#FFFFFFFFFFFFFFFFFFFF:80, _:16>>).
 
+%% User type codes
+%% Typecode: 0x40 - 0x4f Length: Variable (user defined)
+%% Encoding: User defined
+%% Status: Reserved
+
+%% atom - Variable length, ends at the
+%% first \x00 that's not followed by \xFF
+-define(ATOM, 16#40).
+
+%% list
+-define(LIST, 16#41).
+
+%% map
+-define(MAP, 16#42).
+
 pack(Tuple) when is_tuple(Tuple) ->
     pack(Tuple, <<>>).
 
@@ -254,6 +269,17 @@ encode(Tuple, Depth) when is_tuple(Tuple) ->
     Encoded = [encode(E, Depth + 1) || E <- Elems],
     [<<?NESTED>>, Encoded, <<?NULL>>];
 
+encode(Atom, _Depth) when is_atom(Atom) ->
+    [<<?ATOM>>, enc_null_terminated(atom_to_binary(Atom, utf8))];
+
+encode(List, Depth) when is_list(List) ->
+    Encoded = [encode(E, Depth) || E <- List],
+    [<<?LIST>>, Encoded, <<?NULL>>];
+
+encode(Map, Depth) when is_map(Map) ->
+    Encoded = encode(maps:to_list(Map), Depth),
+    [<<?MAP>>, Encoded, <<?NULL>>];
+
 encode(BadTerm, _) ->
     erlang:error({invalid_tuple_term, BadTerm}).
 
@@ -372,8 +398,22 @@ decode(<<?VS80, Id:64/big, Batch:16/big, Rest/binary>>, Depth) ->
 
 decode(<<?VS96, Id:64/big, Batch:16/big, Tx:16/big, Rest/binary>>, Depth) ->
     {Values, Tail} = decode(Rest, Depth),
-    {[{versionstamp, Id, Batch, Tx} | Values], Tail}.
+    {[{versionstamp, Id, Batch, Tx} | Values], Tail};
 
+decode(<<?ATOM, Rest/binary>>, Depth) ->
+    {Bin, NewRest} = dec_null_terminated(Rest),
+    {Values, Tail} = decode(NewRest, Depth),
+    {[binary_to_atom(Bin, utf8) | Values], Tail};
+
+decode(<<?LIST, Rest/binary>>, Depth) ->
+    {ListValues, Tail1} = decode(Rest, Depth + 1),
+    {RestValues, Tail2} = decode(Tail1, Depth),
+    {[ListValues | RestValues], Tail2};
+
+decode(<<?MAP, Rest/binary>>, Depth) ->
+    {[MapAsList], Tail1} = decode(Rest, Depth + 1),
+    {RestValues, Tail2} = decode(Tail1, Depth),
+    {[maps:from_list(MapAsList) | RestValues], Tail2}.
 
 dec_null_terminated(Bin) ->
     {Parts, Tail} = dec_null_terminated(Bin, 0),
@@ -512,6 +552,9 @@ code_for({id64, _Id}) -> ?ID64;
 code_for({versionstamp, _Id, _Batch}) -> ?VS80;
 code_for({versionstamp, _Id, _Batch, _Tx}) -> ?VS96;
 code_for(T) when is_tuple(T) -> ?NESTED;
+code_for(A) when is_atom(A) -> ?ATOM;
+code_for(L) when is_list(L) -> ?LIST;
+code_for(M) when is_map(M) -> ?MAP;
 code_for(Bad) -> erlang:error({invalid_tuple_element, Bad}).
 
 
@@ -519,6 +562,7 @@ code_for(Bad) -> erlang:error({invalid_tuple_element, Bad}).
 
 -include_lib("eunit/include/eunit.hrl").
 
+-record(test_rec, {id, value}).
 
 fdb_vectors_test() ->
     % These are all from the tuple layer spec:
@@ -580,5 +624,31 @@ bindingstester_discoveries_test() ->
         ?assertEqual(Test, pack(unpack(Test)))
     end, UnpackPackCases).
 
+native_test() ->
+    Cases = [
+        {
+            #test_rec{id = 123, value = #{one => [a,b,c]}},
+            <<16#40, "test_rec", 16#00, %% atom
+               16#15, 123, %% pos integer
+               16#42, %% map start
+                 16#41, %% list start
+                   16#05, %% nested start
+                     16#40, "one", 16#00, %% atom
+                     16#41, %% list start
+                       16#40, "a", 16#00, %% atom
+                       16#40, "b", 16#00, %% atom
+                       16#40, "c", 16#00, %% atom
+                     16#00, %% list end
+                   16#00, %% nested end
+                 16#00, %% list end
+               16#00 %% end
+             >>
+        }
+    ],
+    lists:foreach(
+        fun({Test, Expect}) ->
+            ?assertEqual(Expect, pack(Test)),
+            ?assertEqual(Test, unpack(pack(Test)))
+        end, Cases).
 
 -endif.
