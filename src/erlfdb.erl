@@ -124,6 +124,7 @@
 
 
 -define(IS_FUTURE, {erlfdb_future, _, _}).
+-define(IS_FOLD_FUTURE, {fold_info, _, _}).
 -define(IS_DB, {erlfdb_database, _}).
 -define(IS_TX, {erlfdb_transaction, _}).
 -define(IS_SS, {erlfdb_snapshot, _}).
@@ -190,12 +191,19 @@ reset(?IS_TX = Tx) ->
     ok = erlfdb_nif:transaction_reset(Tx).
 
 
+cancel(?IS_FOLD_FUTURE = FoldInfo) ->
+    cancel(FoldInfo, []);
+
 cancel(?IS_FUTURE = Future) ->
-    ok = erlfdb_nif:future_cancel(Future);
+    cancel(Future, []);
 
 cancel(?IS_TX = Tx) ->
     ok = erlfdb_nif:transaction_cancel(Tx).
 
+
+cancel(?IS_FOLD_FUTURE = FoldInfo, Options) ->
+    {fold_info, _St, Future} = FoldInfo,
+    cancel(Future, Options);
 
 cancel(?IS_FUTURE = Future, Options) ->
     ok = erlfdb_nif:future_cancel(Future),
@@ -382,7 +390,7 @@ fold_range_future(?IS_SS = SS, StartKey, EndKey, Options) ->
     fold_range_future(?GET_TX(SS), StartKey, EndKey, SSOptions).
 
 
-fold_range_wait(?IS_TX = Tx, {fold_info, _, _} = FI, Fun, Acc) ->
+fold_range_wait(?IS_TX = Tx, ?IS_FOLD_FUTURE = FI, Fun, Acc) ->
     fold_range_int(Tx, FI, fun(Rows, InnerAcc) ->
         lists:foldl(Fun, InnerAcc, Rows)
     end, Acc).
@@ -674,7 +682,8 @@ fold_range_int(Tx, #fold_st{} = St, Fun, Acc) ->
     RangeFuture = fold_range_future_int(Tx, St),
     fold_range_int(Tx, RangeFuture, Fun, Acc);
 
-fold_range_int(Tx, {fold_info, St, Future}, Fun, Acc) ->
+fold_range_int(Tx, ?IS_FOLD_FUTURE = FI, Fun, Acc) ->
+    {fold_info, St, Future} = FI,
     #fold_st{
         start_key = StartKey,
         end_key = EndKey,
