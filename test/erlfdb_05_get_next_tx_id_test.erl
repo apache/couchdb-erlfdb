@@ -16,6 +16,7 @@
 
 
 get_tx_id_test() ->
+    erlfdb_nif:init(),
     Db = erlfdb_util:get_test_db(),
     erlfdb:transactional(Db, fun(Tx) ->
         lists:foreach(fun(I) ->

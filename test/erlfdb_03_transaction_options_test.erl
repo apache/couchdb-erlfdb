@@ -16,6 +16,7 @@
 
 
 get_approximate_tx_size_test() ->
+    erlfdb_nif:init(),
     Db1 = erlfdb_util:get_test_db(),
     erlfdb:transactional(Db1, fun(Tx) ->
          ok = erlfdb:set(Tx, gen(10), gen(5000)),

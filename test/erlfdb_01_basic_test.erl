@@ -16,6 +16,7 @@
 
 
 load_test() ->
+    erlfdb_nif:init(),
     erlfdb_nif:ohai().
 
 

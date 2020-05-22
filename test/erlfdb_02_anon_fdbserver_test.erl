@@ -16,6 +16,7 @@
 
 
 basic_init_test() ->
+    erlfdb_nif:init(),
     {ok, ClusterFile} = erlfdb_util:init_test_cluster([]),
     ?assert(is_binary(ClusterFile)).
 
