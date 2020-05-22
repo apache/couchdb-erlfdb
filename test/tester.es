@@ -1011,7 +1011,7 @@ main([Prefix, APIVsn, ClusterFileStr]) ->
     %% Prompt = io_lib:format("GDB Attach to: ~s~n", [os:getpid()]),
     %% io:get_line(Prompt),
     %% io:format("Running tests: ~s ~s ~s~n", [Prefix, APIVsn, ClusterFileStr]),
-
+    erlfdb_nif:init(),
     application:set_env(erlfdb, api_version, list_to_integer(APIVsn)),
     Db = erlfdb:open(iolist_to_binary(ClusterFileStr)),
     init_run_loop(Db, iolist_to_binary(Prefix)).
