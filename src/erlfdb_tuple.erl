@@ -67,7 +67,9 @@
 
 % Floats and Doubles
 -define(FLOAT, 16#20).
+-define(FLOAT_ZERO, <<?FLOAT, 128, 0, 0, 0, 0, 0, 0, 0, 0>>).
 -define(DOUBLE, 16#21).
+-define(DOUBLE_ZERO, <<?DOUBLE, 128, 0, 0, 0, 0, 0, 0, 0, 0>>).
 
 % Booleans are a single byte each
 -define(FALSE, 16#26).
@@ -368,13 +370,13 @@ decode(<<?POS_INT_8, Rest/binary>>, Depth) -> dec_pos_int(Rest, 8, Depth);
 decode(<<?POS_INT_9P, Size:8/unsigned-integer, Rest/binary>>, Depth) ->
     dec_pos_int(Rest, Size, Depth);
 
-decode(<<?FLOAT, 0,0,0,0,0,0,0,0>>, _Depth) ->
+decode(<<?FLOAT_ZERO>>, _Depth) ->
     0.0;
 decode(<<?FLOAT, Raw:4/binary, Rest/binary>>, Depth) ->
     {Values, Tail} = decode(Rest, Depth),
     {[dec_float(Raw) | Values], Tail};
 
-decode(<<?DOUBLE, 0,0,0,0,0,0,0,0>>, _Depth) ->
+decode(<<?DOUBLE_ZERO>>, _Depth) ->
     0.0;
 decode(<<?DOUBLE, Raw:8/binary, Rest/binary>>, Depth) ->
     {Values, Tail} = decode(Rest, Depth),
