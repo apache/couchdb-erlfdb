@@ -370,13 +370,13 @@ decode(<<?POS_INT_8, Rest/binary>>, Depth) -> dec_pos_int(Rest, 8, Depth);
 decode(<<?POS_INT_9P, Size:8/unsigned-integer, Rest/binary>>, Depth) ->
     dec_pos_int(Rest, Size, Depth);
 
-decode(<<?FLOAT_ZERO>>, _Depth) ->
+decode(?FLOAT_ZERO, _Depth) ->
     0.0;
 decode(<<?FLOAT, Raw:4/binary, Rest/binary>>, Depth) ->
     {Values, Tail} = decode(Rest, Depth),
     {[dec_float(Raw) | Values], Tail};
 
-decode(<<?DOUBLE_ZERO>>, _Depth) ->
+decode(?DOUBLE_ZERO, _Depth) ->
     0.0;
 decode(<<?DOUBLE, Raw:8/binary, Rest/binary>>, Depth) ->
     {Values, Tail} = decode(Rest, Depth),
