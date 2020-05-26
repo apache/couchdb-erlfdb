@@ -371,11 +371,19 @@ decode(<<?POS_INT_9P, Size:8/unsigned-integer, Rest/binary>>, Depth) ->
 decode(<<?FLOAT, 128, 0, 0, 0, 0, 0, 0, 0, Rest/binary>>, Depth) ->
     {Values, Tail} = decode(Rest, Depth),
     {[0.0 | Values], Tail};
+decode(<<?FLOAT, 128, 0, 0, 0, Rest/binary>>, Depth) ->
+    %% encoded from tagged value
+    {Values, Tail} = decode(Rest, Depth),
+    {[0.0 | Values], Tail};
 decode(<<?FLOAT, Raw:4/binary, Rest/binary>>, Depth) ->
     {Values, Tail} = decode(Rest, Depth),
     {[dec_float(Raw) | Values], Tail};
 
 decode(<<?DOUBLE, 128, 0, 0, 0, 0, 0, 0, 0, Rest/binary>>, Depth) ->
+    {Values, Tail} = decode(Rest, Depth),
+    {[0.0 | Values], Tail};
+decode(<<?DOUBLE, 128, 0, 0, 0, Rest/binary>>, Depth) ->
+    %% encoded from tagged value
     {Values, Tail} = decode(Rest, Depth),
     {[0.0 | Values], Tail};
 decode(<<?DOUBLE, Raw:8/binary, Rest/binary>>, Depth) ->
