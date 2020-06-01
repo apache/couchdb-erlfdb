@@ -130,6 +130,7 @@
 -define(IS_SS, {erlfdb_snapshot, _}).
 -define(GET_TX(SS), element(2, SS)).
 -define(ERLFDB_ERROR, '$erlfdb_error').
+-define(MAX_ERRORS, 2).
 
 
 -record(fold_st, {
@@ -657,8 +658,12 @@ get_error_string(ErrorCode) when is_integer(ErrorCode) ->
 clear_erlfdb_error() ->
     put(?ERLFDB_ERROR, undefined).
 
-
 do_transaction(?IS_TX = Tx, UserFun) ->
+    do_transaction(Tx, UserFun, ?MAX_ERRORS, undefined).
+
+do_transaction(?IS_TX = _Tx, _UserFun, 0, LastErrorCode) ->
+    {erlfdb_error, LastErrorCode};
+do_transaction(?IS_TX = Tx, UserFun, ErrRem, _LastErrorCode) ->
     try
         Ret = UserFun(Tx),
         case is_read_only(Tx) andalso not has_watches(Tx) of
@@ -669,7 +674,7 @@ do_transaction(?IS_TX = Tx, UserFun) ->
     catch error:{erlfdb_error, Code} ->
         put(?ERLFDB_ERROR, Code),
         wait(on_error(Tx, Code)),
-        do_transaction(Tx, UserFun)
+        do_transaction(Tx, UserFun, ErrRem - 1, Code)
     end.
 
 
