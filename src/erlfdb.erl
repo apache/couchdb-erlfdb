@@ -663,12 +663,12 @@ do_transaction(?IS_TX = Tx, UserFun) ->
         Ret = UserFun(Tx),
         case is_read_only(Tx) andalso not has_watches(Tx) of
             true -> ok;
-            false -> wait(commit(Tx))
+            false -> wait(commit(Tx), [{timeout, infinity}])
         end,
         Ret
     catch error:{erlfdb_error, Code} ->
         put(?ERLFDB_ERROR, Code),
-        wait(on_error(Tx, Code)),
+        wait(on_error(Tx, Code), [{timeout, infinity}]),
         do_transaction(Tx, UserFun)
     end.
 
