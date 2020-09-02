@@ -946,6 +946,10 @@ erlfdb_transaction_set_option(
         option = FDB_TR_OPTION_SIZE_LIMIT;
     } else if(IS_ATOM(argv[1], use_provisional_proxies)) {
         option = FDB_TR_OPTION_USE_PROVISIONAL_PROXIES;
+#if FDB_API_VERSION > 620
+    } else if(IS_ATOM(argv[1], report_conflicting_keys)) {
+        option = FDB_TR_OPTION_REPORT_CONFLICTING_KEYS;
+#endif
     } else {
         return enif_make_badarg(env);
     }
