@@ -115,6 +115,9 @@
     % Locality
     get_addresses_for_key/2,
 
+    % Get conflict information
+    get_conflicting_keys/1,
+
     % Misc
     on_error/2,
     error_predicate/2,
@@ -627,6 +630,12 @@ get_addresses_for_key(?IS_TX = Tx, Key) ->
 
 get_addresses_for_key(?IS_SS = SS, Key) ->
     get_addresses_for_key(?GET_TX(SS), Key).
+
+
+get_conflicting_keys(?IS_TX = Tx) ->
+    StartKey = <<16#FF, 16#FF, "/transaction/conflicting_keys/">>,
+    EndKey = <<16#FF, 16#FF, "/transaction/conflicting_keys/", 16#FF>>,
+    get_range(Tx, StartKey, EndKey).
 
 
 on_error(?IS_TX = Tx, {erlfdb_error, ErrorCode}) ->

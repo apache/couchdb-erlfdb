@@ -107,6 +107,7 @@ ATOM_MAP(allow_writes);
 ATOM_MAP(disallow_writes);
 ATOM_MAP(include_port_in_address);
 ATOM_MAP(use_provisional_proxies);
+ATOM_MAP(report_conflicting_keys);
 
 
 // Streaming mode
