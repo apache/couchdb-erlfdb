@@ -172,7 +172,10 @@ transactional(?IS_SS = SS, UserFun) when is_function(UserFun, 1) ->
 
 
 snapshot(?IS_TX = Tx) ->
-    {erlfdb_snapshot, Tx}.
+    {erlfdb_snapshot, Tx};
+
+snapshot(?IS_SS = SS) ->
+    SS.
 
 
 set_option(DbOrTx, Option) ->
@@ -318,7 +321,10 @@ get(?IS_SS = SS, Key) ->
 
 
 get_ss(?IS_TX = Tx, Key) ->
-    erlfdb_nif:transaction_get(Tx, Key, true).
+    erlfdb_nif:transaction_get(Tx, Key, true);
+
+get_ss(?IS_SS = SS, Key) ->
+    get_ss(?GET_TX(SS), Key).
 
 
 get_key(?IS_DB = Db, Key) ->
