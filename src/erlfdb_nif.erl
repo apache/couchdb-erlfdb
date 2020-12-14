@@ -21,6 +21,7 @@
     get_max_api_version/0,
 
     future_cancel/1,
+    future_silence/1,
     future_is_ready/1,
     future_get_error/1,
     future_get/1,
@@ -193,6 +194,11 @@ get_max_api_version() ->
 -spec future_cancel(future()) -> ok.
 future_cancel({erlfdb_future, _Ref, Ft}) ->
     erlfdb_future_cancel(Ft).
+
+
+-spec future_silence(future()) -> ok.
+future_silence({erlfdb_future, _Ref, Ft}) ->
+    erlfdb_future_silence(Ft).
 
 
 -spec future_is_ready(future()) -> boolean().
@@ -527,6 +533,7 @@ erlfdb_setup_network() -> ?NOT_LOADED.
 
 % Futures
 erlfdb_future_cancel(_Future) -> ?NOT_LOADED.
+erlfdb_future_silence(_Future) -> ?NOT_LOADED.
 erlfdb_future_is_ready(_Future) -> ?NOT_LOADED.
 erlfdb_future_get_error(_Future) -> ?NOT_LOADED.
 erlfdb_future_get(_Future) -> ?NOT_LOADED.
