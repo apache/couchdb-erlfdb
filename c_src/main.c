@@ -84,10 +84,14 @@ erlfdb_future_cb(FDBFuture* fdb_future, void* data)
         caller = future->pid_env;
     }
 
+    enif_mutex_lock(future->lock);
+
     if(!future->cancelled) {
         msg = T2(future->msg_env, future->msg_ref, ATOM_ready);
         enif_send(caller, &(future->pid), future->msg_env, msg);
     }
+
+    enif_mutex_unlock(future->lock);
 
     // We're now done with this future which means we need
     // to release our handle to it. See erlfdb_create_future
@@ -114,6 +118,7 @@ erlfdb_create_future(ErlNifEnv* env, FDBFuture* future, ErlFDBFutureType ftype)
     f->pid_env = env;
     f->msg_env = enif_alloc_env();
     f->msg_ref = enif_make_copy(f->msg_env, ref);
+    f->lock = enif_mutex_create("fdb:future_lock");
     f->cancelled = false;
 
     // This resource reference counting dance is a bit
@@ -579,12 +584,45 @@ erlfdb_future_cancel(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     }
     future = (ErlFDBFuture*) res;
 
+    enif_mutex_lock(future->lock);
+
     future->cancelled = true;
     fdb_future_cancel(future->future);
+
+    enif_mutex_unlock(future->lock);
 
     return ATOM_ok;
 }
 
+
+static ERL_NIF_TERM
+erlfdb_future_silence(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    ErlFDBFuture* future;
+    void* res;
+
+    if(st->lib_state != ErlFDB_CONNECTED) {
+        return enif_make_badarg(env);
+    }
+
+    if(argc != 1) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_resource(env, argv[0], ErlFDBFutureRes, &res)) {
+        return enif_make_badarg(env);
+    }
+    future = (ErlFDBFuture*) res;
+
+    enif_mutex_lock(future->lock);
+
+    future->cancelled = true;
+
+    enif_mutex_unlock(future->lock);
+
+    return ATOM_ok;
+}
 
 static ERL_NIF_TERM
 erlfdb_future_is_ready(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
@@ -2158,6 +2196,7 @@ static ErlNifFunc funcs[] =
     NIF_FUNC(erlfdb_setup_network, 0),
 
     NIF_FUNC(erlfdb_future_cancel, 1),
+    NIF_FUNC(erlfdb_future_silence, 1),
     NIF_FUNC(erlfdb_future_is_ready, 1),
     NIF_FUNC(erlfdb_future_get_error, 1),
     NIF_FUNC(erlfdb_future_get, 1),
