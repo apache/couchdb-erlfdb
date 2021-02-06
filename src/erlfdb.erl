@@ -122,6 +122,7 @@
     on_error/2,
     error_predicate/2,
     get_last_error/0,
+    get_error_name/1,
     get_error_string/1
 ]).
 
@@ -663,6 +664,10 @@ error_predicate(Predicate, ErrorCode) ->
 
 get_last_error() ->
     erlang:get(?ERLFDB_ERROR).
+
+
+get_error_name(ErrorCode) when is_integer(ErrorCode) ->
+    erlfdb_error:error_name(ErrorCode).
 
 
 get_error_string(ErrorCode) when is_integer(ErrorCode) ->
