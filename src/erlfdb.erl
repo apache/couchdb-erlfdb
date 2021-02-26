@@ -402,7 +402,10 @@ fold_range_future(?IS_SS = SS, StartKey, EndKey, Options) ->
 fold_range_wait(?IS_TX = Tx, ?IS_FOLD_FUTURE = FI, Fun, Acc) ->
     fold_range_int(Tx, FI, fun(Rows, InnerAcc) ->
         lists:foldl(Fun, InnerAcc, Rows)
-    end, Acc).
+    end, Acc);
+
+fold_range_wait(?IS_SS = SS, ?IS_FOLD_FUTURE = FI, Fun, Acc) ->
+    fold_range_wait(?GET_TX(SS), FI, Fun, Acc).
 
 
 set(?IS_DB = Db, Key, Value) ->
