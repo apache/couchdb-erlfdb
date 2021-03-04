@@ -478,14 +478,14 @@ erlfdb_network_set_option(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         option = FDB_NET_OPTION_TLS_KEY_PATH;
     } else if(IS_ATOM(argv[0], tls_verify_peers)) {
         option = FDB_NET_OPTION_TLS_VERIFY_PEERS;
-    } else if(IS_ATOM(argv[0], buggify_enable)) {
-        option = FDB_NET_OPTION_BUGGIFY_ENABLE;
-    } else if(IS_ATOM(argv[0], buggify_disable)) {
-        option = FDB_NET_OPTION_BUGGIFY_DISABLE;
-    } else if(IS_ATOM(argv[0], buggify_section_activated_probability)) {
-        option = FDB_NET_OPTION_BUGGIFY_SECTION_ACTIVATED_PROBABILITY;
-    } else if(IS_ATOM(argv[0], buggify_section_fired_probability)) {
-        option = FDB_NET_OPTION_BUGGIFY_SECTION_FIRED_PROBABILITY;
+    } else if(IS_ATOM(argv[0], client_buggify_enable)) {
+        option = FDB_NET_OPTION_CLIENT_BUGGIFY_ENABLE;
+    } else if(IS_ATOM(argv[0], client_buggify_disable)) {
+        option = FDB_NET_OPTION_CLIENT_BUGGIFY_DISABLE;
+    } else if(IS_ATOM(argv[0], client_buggify_section_activated_probability)) {
+        option = FDB_NET_OPTION_CLIENT_BUGGIFY_SECTION_ACTIVATED_PROBABILITY;
+    } else if(IS_ATOM(argv[0], client_buggify_section_fired_probability)) {
+        option = FDB_NET_OPTION_CLIENT_BUGGIFY_SECTION_FIRED_PROBABILITY;
     } else if(IS_ATOM(argv[0], tls_ca_bytes)) {
         option = FDB_NET_OPTION_TLS_CA_BYTES;
     } else if(IS_ATOM(argv[0], tls_password)) {
