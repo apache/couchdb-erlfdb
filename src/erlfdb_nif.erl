@@ -99,10 +99,10 @@
     tls_key_bytes |
     tls_key_path |
     tls_verify_peers |
-    buggify_enable |
-    buggify_disable |
-    buggify_section_activated_probability |
-    buggify_section_fired_probability |
+    client_buggify_enable |
+    client_buggify_disable |
+    client_buggify_section_activated_probability |
+    client_buggify_section_fired_probability |
     tls_ca_bytes |
     tls_ca_path |
     tls_password |
