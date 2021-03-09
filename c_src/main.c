@@ -808,6 +808,7 @@ erlfdb_database_set_option(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         option = FDB_DB_OPTION_TRANSACTION_CAUSAL_READ_RISKY;
     } else if(IS_ATOM(argv[1], include_port_in_address)) {
         option = FDB_DB_OPTION_TRANSACTION_INCLUDE_PORT_IN_ADDRESS;
+    } else {
         return enif_make_badarg(env);
     }
 
