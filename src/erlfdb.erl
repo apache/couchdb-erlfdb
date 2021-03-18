@@ -253,7 +253,7 @@ wait(?IS_FUTURE = Future, Options) ->
             flush_future_message(Future),
             Result;
         false ->
-            Timeout = erlfdb_util:get(Options, timeout, 5000),
+            Timeout = erlfdb_util:get(Options, timeout, infinity),
             {erlfdb_future, MsgRef, _Res} = Future,
             receive
                 {MsgRef, ready} -> get(Future)
@@ -686,6 +686,7 @@ do_transaction(?IS_TX = Tx, UserFun) ->
         Ret
     catch error:{erlfdb_error, Code} ->
         put(?ERLFDB_ERROR, Code),
+        couch_log:error(" +++ erlfdb error ~p tx:~p fun:~p", [Code, Tx, UserFun]),
         wait(on_error(Tx, Code), [{timeout, infinity}]),
         do_transaction(Tx, UserFun)
     end.
