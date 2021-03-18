@@ -686,7 +686,7 @@ do_transaction(?IS_TX = Tx, UserFun) ->
         Ret
     catch error:{erlfdb_error, Code} ->
         put(?ERLFDB_ERROR, Code),
-        couch_log:error(" +++ erlfdb error ~p tx:~p fun:~p", [Code, Tx, UserFun]),
+        %couch_log:error(" +++ erlfdb error ~p tx:~p fun:~p", [Code, Tx, UserFun]),
         wait(on_error(Tx, Code), [{timeout, infinity}]),
         do_transaction(Tx, UserFun)
     end.
