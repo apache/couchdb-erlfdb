@@ -677,19 +677,37 @@ clear_erlfdb_error() ->
 
 
 do_transaction(?IS_TX = Tx, UserFun) ->
+    increment_tx_retries(Tx),
     try
         Ret = UserFun(Tx),
         case is_read_only(Tx) andalso not has_watches(Tx) of
             true -> ok;
             false -> wait(commit(Tx), [{timeout, infinity}])
         end,
+        clear_tx_retries(Tx),
         Ret
     catch error:{erlfdb_error, Code} ->
         put(?ERLFDB_ERROR, Code),
-        %couch_log:error(" +++ erlfdb error ~p tx:~p fun:~p", [Code, Tx, UserFun]),
+        couch_log:error(" +++++ erlfdb tx error ~p tx:~p retries:~p", [Code, Tx, get_tx_retries(Tx)]),
         wait(on_error(Tx, Code), [{timeout, infinity}]),
         do_transaction(Tx, UserFun)
     end.
+
+
+get_tx_retries(Tx) ->
+    case erlang:get({'$erlfdb_retries', Tx}) of
+        undefined -> 0;
+        N when is_integer(N) -> N
+    end.
+
+
+increment_tx_retries(Tx) ->
+    Retries = get_tx_retries(Tx),
+    put({'$erlfdb_retries', Tx}, Retries + 1).
+
+
+clear_tx_retries(Tx) ->
+    erase({'$erlfdb_retries', Tx}).
 
 
 fold_range_int(?IS_TX = Tx, StartKey, EndKey, Fun, Acc, Options) ->
