@@ -31,6 +31,38 @@
     end)()).
 
 
+% Most of the retriable FDB errors. The list of errors can be generated with
+% something like [erlfdb:get_error_string(C) || C <- lists:seq(1, 5000),
+% erlfdb:error_predicate(retryable, C)].
+%
+-define(ERLFDB_TIMED_OUT, 1004).
+-define(ERLFDB_TRANSACTION_TOO_OLD, 1007).
+-define(ERLFDB_FUTURE_VERSION, 1009).
+-define(ERLFDB_NOT_COMMITTED, 1020).
+-define(ERLFDB_COMMIT_UNKNOWN_RESULT, 1021).
+-define(ERLFDB_TRANSACTION_CANCELLED, 1025).
+-define(ERLFDB_TRANSACTION_TIMED_OUT, 1031).
+-define(ERLFDB_PROCESS_BEHIND, 1037).
+-define(ERLFDB_DATABASE_LOCKED, 1038).
+-define(ERLFDB_CLUSTER_VERSION_CHANGED, 1039).
+-define(ERLFDB_PROXY_MEMORY_LIMIT_EXCEEDED, 1042).
+-define(ERLFDB_BATCH_TRANSACTION_THROTTLED, 1051).
+-define(ERLFDB_TAG_THROTTLED, 1213).
+-define(ERLFDB_TRANSACTION_TOO_LARGE, 2101).
 
-
-
+% The list is the exact result from calling `error_predicate/2` and does not
+% include ?TRANSACTION_TIMED_OUT. In some cases it may make sense to also
+% consider that error as retryable.
+%
+-define(ERLFDB_IS_RETRYABLE(Code), (
+    (Code == ?ERLFDB_TRANSACTION_TOO_OLD) orelse
+    (Code == ?ERLFDB_FUTURE_VERSION) orelse
+    (Code == ?ERLFDB_NOT_COMMITTED) orelse
+    (Code == ?ERLFDB_COMMIT_UNKNOWN_RESULT) orelse
+    (Code == ?ERLFDB_PROCESS_BEHIND) orelse
+    (Code == ?ERLFDB_DATABASE_LOCKED) orelse
+    (Code == ?ERLFDB_CLUSTER_VERSION_CHANGED) orelse
+    (Code == ?ERLFDB_PROXY_MEMORY_LIMIT_EXCEEDED) orelse
+    (Code == ?ERLFDB_BATCH_TRANSACTION_THROTTLED) orelse
+    (Code == ?ERLFDB_TAG_THROTTLED)
+)).
