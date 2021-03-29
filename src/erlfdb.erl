@@ -275,7 +275,7 @@ wait_for_any(Futures, Options) ->
 
 
 wait_for_any(Futures, Options, ResendQ) ->
-    Timeout = erlfdb_util:get(Options, timeout, 5000),
+    Timeout = erlfdb_util:get(Options, timeout, infinity),
     receive
         {MsgRef, ready} = Msg ->
             case lists:keyfind(MsgRef, 2, Futures) of
