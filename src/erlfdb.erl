@@ -253,7 +253,7 @@ wait(?IS_FUTURE = Future, Options) ->
             flush_future_message(Future),
             Result;
         false ->
-            Timeout = erlfdb_util:get(Options, timeout, 5000),
+            Timeout = erlfdb_util:get(Options, timeout, infinity),
             {erlfdb_future, MsgRef, _Res} = Future,
             receive
                 {MsgRef, ready} -> get(Future)
