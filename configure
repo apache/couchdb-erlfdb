@@ -1,0 +1,57 @@
+#!/bin/sh -e
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+
+rootdir="$(cd "${0%/*}" 2>/dev/null; echo "$PWD")"
+basename=`basename $0`
+
+install_local_rebar() {
+    if [ ! -x "${rootdir}/bin/rebar" ]; then
+        if [ ! -d "${rootdir}/src/rebar" ]; then
+            git clone --depth 1 https://github.com/rebar/rebar.git ${rootdir}/src/rebar
+        fi
+        cd ${rootdir}/src/rebar/
+        ./bootstrap
+        if [ ! -d "${rootdir}/bin/" ]; then
+            mkdir ${rootdir}/bin/
+        fi
+        mv ${rootdir}/src/rebar/rebar ${rootdir}/bin/rebar
+        cd ${rootdir}
+        rm -rf ${rootdir}/src/rebar
+    fi
+}
+
+install_local_enc() {
+    if [ ! -x "${rootdir}/bin/enc" ]; then
+        if [ ! -d "${rootdir}/src/erlang-native-compiler" ]; then
+            git clone --depth 1 https://github.com/davisp/erlang-native-compiler.git ${rootdir}/src/erlang-native-compiler
+        fi
+        cd ${rootdir}/src/erlang-native-compiler/
+        ./bootstrap
+        if [ ! -d "${rootdir}/bin/" ]; then
+            mkdir ${rootdir}/bin/
+        fi
+        mv ${rootdir}/src/erlang-native-compiler/enc ${rootdir}/bin/enc
+        cd ${rootdir}
+        rm -rf ${rootdir}/src/erlang-native-compiler
+    fi
+}
+
+if [ -z "${REBAR}" ]; then
+    install_local_rebar
+    REBAR=${rootdir}/bin/rebar
+fi
+
+if [ -z "${ENC}" ]; then
+    install_local_enc
+    ENC=${rootdir}/bin/enc
+fi

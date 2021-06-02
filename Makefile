@@ -1,10 +1,13 @@
+REBAR?=$(shell echo `pwd`/bin/rebar)
+
 all: check
 
 build:
-	rebar compile
+	./configure
+	$(REBAR) compile
 
 check: build
-	rebar eunit
+	$(REBAR) eunit
 
 clean:
-	rebar clean
+	$(REBAR) clean
