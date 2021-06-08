@@ -1,12 +1,11 @@
 
 .eunit/
-.rebar/
+_build/
+rebar.lock
+
+c_src/*.o
+
+priv/erlfdb_nif.*
 
 compile_commands.json
 erln8.config
-
-c_src/*.d
-c_src/*.o
-ebin/
-
-priv/erlfdb_nif.*
