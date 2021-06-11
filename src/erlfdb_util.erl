@@ -48,6 +48,8 @@ get_test_db(Options) ->
 
 
 init_test_cluster(Options) ->
+    % Hack to ensure erlfdb app environment is loaded during unit tests
+    ok = application:ensure_started(erlfdb),
     case application:get_env(erlfdb, test_cluster_file) of
         {ok, ClusterFile} ->
             {ok, ClusterFile};
