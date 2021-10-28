@@ -52,6 +52,8 @@ init_test_cluster(Options) ->
     ok = application:ensure_started(erlfdb),
     case application:get_env(erlfdb, test_cluster_file) of
         {ok, ClusterFile} ->
+            % Create a database if one does not already exist
+            init_fdb_db(ClusterFile, Options),
             {ok, ClusterFile};
         undefined ->
             init_test_cluster_int(Options)
