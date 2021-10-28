@@ -17,12 +17,22 @@ RUN set -ex; \
     mkdir /var/lib/foundationdb; \
     dpkg -i foundationdb-clients_${FDB_VERSION}-1_amd64.deb
 
-# FDB bindings tester uses the Python bindings
+# FDB bindings tester uses the Python bindings; install them from a
+# package to avoid building FDB from source
+# TODO FDB 6.3+ uses python3, we'll need to update it here
 RUN set -ex; \
     wget https://www.foundationdb.org/downloads/${FDB_VERSION}/bindings/python/foundationdb-${FDB_VERSION}.tar.gz; \
     tar zxf foundationdb-${FDB_VERSION}.tar.gz; \
     cd foundationdb-${FDB_VERSION}; \
-    python3 setup.py install
+    python setup.py install
+
+# Clone FoundationDB repo to retrieve bindings tester package and
+# patch it to support erlfdb
+COPY add_erlang_bindings.patch /tmp/
+RUN set -ex; \
+    git clone --branch ${FDB_VERSION} --single-branch https://github.com/apple/foundationdb /usr/src/foundationdb; \
+    cd /usr/src/foundationdb; \
+    git apply /tmp/add_erlang_bindings.patch
 
 # `dig` is used by the script that creates the FDB cluster file
 RUN set -ex; \
