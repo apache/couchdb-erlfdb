@@ -1,3 +1,15 @@
+github:
+  description: "Erlang API for FoundationDB"
+  labels:
+    - erlang
+    - foundationdb
+  features:
+    issues: true
+  enabled_merge_buttons:
+    squash: true
+    rebase: true
+    merge: true
+
 notifications:
     commits: commits@couchdb.apache.org
     issues: notifications@couchdb.apache.org
