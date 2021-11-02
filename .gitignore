@@ -1,12 +1,12 @@
-
+# Unit testing
+.erlfdb/
 .eunit/
-.rebar/
 
 compile_commands.json
 erln8.config
 
+# Build artifacts
 c_src/*.d
 c_src/*.o
-ebin/
-
 priv/erlfdb_nif.*
+_build/

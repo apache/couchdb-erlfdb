@@ -1,10 +1,11 @@
 all: check
 
 build:
-	rebar compile
+	@rebar3 compile
 
 check: build
-	rebar eunit
+	@rebar3 eunit
 
 clean:
-	rebar clean
+	@rebar3 clean
+	@rm -rf _build
