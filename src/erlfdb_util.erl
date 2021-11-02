@@ -215,9 +215,10 @@ init_fdb_db(ClusterFile, Options) ->
     DefaultFDBCli = os:find_executable("fdbcli"),
     FDBCli = case ?MODULE:get(Options, fdbcli_bin, DefaultFDBCli) of
         false -> erlang:error(fdbcli_not_found);
+        DefaultFDBCli -> "fdbcli";
         FDBCli0 -> FDBCli0
     end,
-    Fmt = "~s -C ~s --exec 'configure new single ssd'",
+    Fmt = "~s -C ~s --exec \"configure new single ssd\"",
     Cmd = lists:flatten(io_lib:format(Fmt, [FDBCli, ClusterFile])),
     case os:cmd(Cmd) of
         "Database created" ++ _ -> ok;
