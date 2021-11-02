@@ -1,0 +1,9 @@
+[submodule ".github/actions/setup-beam"]
+	path = .github/actions/setup-beam
+	url = https://github.com/erlef/setup-beam
+[submodule ".github/actions/msvc-dev-cmd"]
+	path = .github/actions/msvc-dev-cmd
+	url = https://github.com/ilammy/msvc-dev-cmd
+[submodule ".github/actions/tmate"]
+	path = .github/actions/tmate
+	url = https://github.com/mxschmitt/action-tmate

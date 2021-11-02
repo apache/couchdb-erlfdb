@@ -1,6 +1,8 @@
 An Erlang Binding to FoundationDB
 ===
 
+[![CI](https://github.com/apache/couchdb-erlfdb/actions/workflows/ci.yml/badge.svg)](https://github.com/apache/couchdb-erlfdb/actions/workflows/ci.yml)
+
 This project is a NIF wrapper for the FoundationDB C API. Documentation on
 the main API can be found [here][fdb_docs].
 
