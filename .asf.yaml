@@ -1,6 +1,8 @@
 github:
   description: "Erlang API for FoundationDB"
+  homepage: https://www.foundationdb.org
   labels:
+    - couchdb
     - erlang
     - foundationdb
   features:
