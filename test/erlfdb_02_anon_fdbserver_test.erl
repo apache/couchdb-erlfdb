@@ -14,11 +14,9 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
-
 basic_init_test() ->
     {ok, ClusterFile} = erlfdb_util:init_test_cluster([]),
     ?assert(is_binary(ClusterFile)).
-
 
 basic_open_test() ->
     {ok, ClusterFile} = erlfdb_util:init_test_cluster([]),
@@ -27,13 +25,11 @@ basic_open_test() ->
         ?assert(true)
     end).
 
-
 get_db_test() ->
     Db = erlfdb_util:get_test_db(),
     erlfdb:transactional(Db, fun(Tx) ->
         ?assert(true)
     end).
-
 
 get_set_get_test() ->
     Db = erlfdb_util:get_test_db(),
@@ -48,7 +44,6 @@ get_set_get_test() ->
     erlfdb:transactional(Db, fun(Tx) ->
         ?assertEqual(Val, erlfdb:wait(erlfdb:get(Tx, Key)))
     end).
-
 
 get_empty_test() ->
     Db1 = erlfdb_util:get_test_db(),

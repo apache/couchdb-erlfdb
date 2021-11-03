@@ -12,7 +12,6 @@
 
 -module(erlfdb_key).
 
-
 -export([
     to_selector/1,
 
@@ -24,7 +23,6 @@
     strinc/1
 ]).
 
-
 to_selector(<<_/binary>> = Key) ->
     {Key, gteq};
 to_selector({<<_/binary>>, _} = Sel) ->
@@ -34,22 +32,17 @@ to_selector({<<_/binary>>, _, _} = Sel) ->
 to_selector(Else) ->
     erlang:error({invalid_key_selector, Else}).
 
-
 last_less_than(Key) when is_binary(Key) ->
     {Key, lt}.
-
 
 last_less_or_equal(Key) when is_binary(Key) ->
     {Key, lteq}.
 
-
 first_greater_than(Key) when is_binary(Key) ->
     {Key, gt}.
 
-
 first_greater_or_equal(Key) when is_binary(Key) ->
     {Key, gteq}.
-
 
 strinc(Key) when is_binary(Key) ->
     Prefix = rstrip_ff(Key),
@@ -58,10 +51,8 @@ strinc(Key) when is_binary(Key) ->
     Tail = binary:at(Prefix, PrefixLen - 1),
     <<Head/binary, (Tail + 1)>>.
 
-
 rstrip_ff(<<>>) ->
     erlang:error("Key must contain at least one byte not equal to 0xFF");
-
 rstrip_ff(Key) ->
     KeyLen = size(Key),
     case binary:at(Key, KeyLen - 1) of

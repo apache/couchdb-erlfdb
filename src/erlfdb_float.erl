@@ -17,8 +17,6 @@
     encode/1
 ]).
 
-
-
 decode(<<_Sign:1, 0:8, _Fraction:23>> = F) ->
     {float, denormalized, F};
 decode(<<_Sign:1, 255:8, 0:23>> = F) ->
@@ -27,7 +25,6 @@ decode(<<_Sign:1, 255:8, _Fraction:23>> = F) ->
     {float, nan, F};
 decode(<<F:32/float>>) ->
     {float, F};
-
 decode(<<_Sign:1, 0:11, _Fraction:52>> = D) ->
     {double, denormalized, D};
 decode(<<_Sign:1, 2047:11, 0:52>> = D) ->
@@ -37,9 +34,7 @@ decode(<<_Sign:1, 2047:11, _Fraction:52>> = D) ->
 decode(<<D:64/float>>) ->
     D.
 
-
 encode({float, F}) -> <<F:32/float>>;
 encode({float, _Type, F}) -> F;
-
 encode(F) when is_float(F) -> <<F:64/float>>;
 encode({double, _Type, D}) -> D.

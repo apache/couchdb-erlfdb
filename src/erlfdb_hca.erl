@@ -16,28 +16,23 @@
 % as this excellent blog post describing the logic:
 %    https://ananthakumaran.in/2018/08/05/high-contention-allocator.html
 
-
 -export([
     create/1,
     allocate/2
 ]).
 
-
 -include("erlfdb.hrl").
-
 
 -record(erlfdb_hca, {
     counters,
     recent
 }).
 
-
 create(Prefix) ->
     #erlfdb_hca{
         counters = ?ERLFDB_EXTEND(Prefix, 0),
         recent = ?ERLFDB_EXTEND(Prefix, 1)
     }.
-
 
 allocate(HCA, Db) ->
     try
@@ -46,10 +41,10 @@ allocate(HCA, Db) ->
             CandidateRange = range(HCA, Tx, Start, false),
             search_candidate(HCA, Tx, CandidateRange)
         end)
-    catch throw:hca_retry ->
-        allocate(HCA, Db)
+    catch
+        throw:hca_retry ->
+            allocate(HCA, Db)
     end.
-
 
 current_start(HCA, Tx) ->
     #erlfdb_hca{
@@ -70,30 +65,30 @@ current_start(HCA, Tx) ->
             Start
     end.
 
-
 range(HCA, Tx, Start, WindowAdvanced) ->
     #erlfdb_hca{
         counters = Counters
     } = HCA,
 
-    if not WindowAdvanced -> ok; true ->
-        clear_previous_window(HCA, Tx, Start)
+    if
+        not WindowAdvanced -> ok;
+        true -> clear_previous_window(HCA, Tx, Start)
     end,
 
     CounterKey = ?ERLFDB_EXTEND(Counters, Start),
     erlfdb:add(Tx, CounterKey, 1),
 
-    Count = case erlfdb:wait(erlfdb:get_ss(Tx, CounterKey)) of
-        <<C:64/little>> -> C;
-        not_found -> 0
-    end,
+    Count =
+        case erlfdb:wait(erlfdb:get_ss(Tx, CounterKey)) of
+            <<C:64/little>> -> C;
+            not_found -> 0
+        end,
 
     WindowSize = window_size(Start),
     case Count * 2 < WindowSize of
         true -> {Start, WindowSize};
         false -> range(HCA, Tx, Start + WindowSize, true)
     end.
-
 
 search_candidate(HCA, Tx, {Start, WindowSize}) ->
     #erlfdb_hca{
@@ -125,8 +120,9 @@ search_candidate(HCA, Tx, {Start, WindowSize}) ->
     case LatestCounter of
         [{CounterKey, _}] ->
             {LStart} = ?ERLFDB_EXTRACT(Counters, CounterKey),
-            if LStart == Start -> ok; true ->
-                throw(hca_retry)
+            if
+                LStart == Start -> ok;
+                true -> throw(hca_retry)
             end;
         _ ->
             ok
@@ -139,7 +135,6 @@ search_candidate(HCA, Tx, {Start, WindowSize}) ->
         _ ->
             throw(hca_retry)
     end.
-
 
 clear_previous_window(HCA, Tx, Start) ->
     #erlfdb_hca{
@@ -154,11 +149,9 @@ clear_previous_window(HCA, Tx, Start) ->
     erlfdb:set_option(Tx, next_write_no_write_conflict_range),
     erlfdb:clear_range(Tx, RRangeStart, RRangeEnd).
 
-
 counter_range(Counters) ->
     S = erlfdb_subspace:create({}, Counters),
     erlfdb_subspace:range(S).
-
 
 window_size(Start) ->
     if

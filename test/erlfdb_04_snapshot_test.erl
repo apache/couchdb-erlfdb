@@ -14,18 +14,16 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
-
 snapshot_from_tx_test() ->
     Db = erlfdb_util:get_test_db(),
     Key = gen(10),
     Val = gen(10),
     erlfdb:set(Db, Key, Val),
     erlfdb:transactional(Db, fun(Tx) ->
-         ?assertEqual(Val, erlfdb:wait(erlfdb:get_ss(Tx, Key))),
-         Ss = erlfdb:snapshot(Tx),
-         ?assertEqual(Val, erlfdb:wait(erlfdb:get(Ss, Key)))
+        ?assertEqual(Val, erlfdb:wait(erlfdb:get_ss(Tx, Key))),
+        Ss = erlfdb:snapshot(Tx),
+        ?assertEqual(Val, erlfdb:wait(erlfdb:get(Ss, Key)))
     end).
-
 
 snapshot_from_a_snapshot_test() ->
     Db = erlfdb_util:get_test_db(),
@@ -33,11 +31,10 @@ snapshot_from_a_snapshot_test() ->
     Val = gen(10),
     erlfdb:set(Db, Key, Val),
     erlfdb:transactional(Db, fun(Tx) ->
-         Ss = erlfdb:snapshot(Tx),
-         ?assertEqual(Val, erlfdb:wait(erlfdb:get_ss(Ss, Key))),
-         Ss = erlfdb:snapshot(Ss)
+        Ss = erlfdb:snapshot(Tx),
+        ?assertEqual(Val, erlfdb:wait(erlfdb:get_ss(Ss, Key))),
+        Ss = erlfdb:snapshot(Ss)
     end).
-
 
 gen(Size) when is_integer(Size), Size > 1 ->
     RandBin = crypto:strong_rand_bytes(Size - 1),

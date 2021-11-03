@@ -14,13 +14,13 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
-
 load_test() ->
     erlfdb_nif:ohai().
 
-
 get_error_string_test() ->
     ?assertEqual(<<"Success">>, erlfdb_nif:get_error(0)),
-    ?assertEqual(<<"Transaction exceeds byte limit">>,
-        erlfdb_nif:get_error(2101)),
+    ?assertEqual(
+        <<"Transaction exceeds byte limit">>,
+        erlfdb_nif:get_error(2101)
+    ),
     ?assertEqual(<<"UNKNOWN_ERROR">>, erlfdb_nif:get_error(9999)).

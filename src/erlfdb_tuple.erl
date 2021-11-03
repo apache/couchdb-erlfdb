@@ -12,7 +12,6 @@
 
 -module(erlfdb_tuple).
 
-
 -export([
     pack/1,
     pack/2,
@@ -24,7 +23,6 @@
     range/2,
     compare/2
 ]).
-
 
 % Codes 16#03, 16#04, 16#23, and 16#24 are reserved
 % for historical reasons.
@@ -90,23 +88,19 @@
 % for use when escaping \x00 bytes
 -define(ESCAPE, 16#FF).
 
-
 -define(UNSET_VERSIONSTAMP80, <<16#FFFFFFFFFFFFFFFFFFFF:80>>).
 -define(UNSET_VERSIONSTAMP96, <<16#FFFFFFFFFFFFFFFFFFFF:80, _:16>>).
 
 pack(Tuple) when is_tuple(Tuple) ->
     pack(Tuple, <<>>).
 
-
 pack(Tuple, Prefix) ->
     Elems = tuple_to_list(Tuple),
     Encoded = [encode(E, 0) || E <- Elems],
     iolist_to_binary([Prefix | Encoded]).
 
-
 pack_vs(Tuple) ->
     pack_vs(Tuple, <<>>).
-
 
 pack_vs(Tuple, Prefix) ->
     Elems = tuple_to_list(Tuple),
@@ -121,10 +115,8 @@ pack_vs(Tuple, Prefix) ->
             erlang:error(E)
     end.
 
-
 unpack(Binary) ->
     unpack(Binary, <<>>).
-
 
 unpack(Binary, Prefix) ->
     PrefixLen = size(Prefix),
@@ -141,29 +133,25 @@ unpack(Binary, Prefix) ->
             erlang:error(E)
     end.
 
-
 % Returns a {StartKey, EndKey} pair of binaries
 % that includes all possible sub-tuples
 range(Tuple) ->
     range(Tuple, <<>>).
 
-
 range(Tuple, Prefix) ->
     Base = pack(Tuple, Prefix),
     {<<Base/binary, 16#00>>, <<Base/binary, 16#FF>>}.
-
 
 compare(A, B) when is_tuple(A), is_tuple(B) ->
     AElems = tuple_to_list(A),
     BElems = tuple_to_list(B),
     compare_impl(AElems, BElems).
 
-
 compare_impl([], []) ->
     0;
-compare_impl([], [_|_]) ->
+compare_impl([], [_ | _]) ->
     -1;
-compare_impl([_|_], []) ->
+compare_impl([_ | _], []) ->
     1;
 compare_impl([A | RestA], [B | RestB]) ->
     case compare_elems(A, B) of
@@ -172,7 +160,7 @@ compare_impl([A | RestA], [B | RestB]) ->
         1 -> 1
     end.
 
-
+%% erlfmt-ignore
 encode(null, 0) ->
     <<?NULL>>;
 
@@ -257,10 +245,8 @@ encode(Tuple, Depth) when is_tuple(Tuple) ->
 encode(BadTerm, _) ->
     erlang:error({invalid_tuple_term, BadTerm}).
 
-
 enc_null_terminated(Bin) ->
     enc_null_terminated(Bin, 0).
-
 
 enc_null_terminated(Bin, Offset) ->
     case Bin of
@@ -272,17 +258,16 @@ enc_null_terminated(Bin, Offset) ->
             enc_null_terminated(Bin, Offset + 1)
     end.
 
-
 enc_float(Float) ->
     Bin = erlfdb_float:encode(Float),
     case Bin of
         <<0:1, B:7, Rest/binary>> ->
             <<1:1, B:7, Rest/binary>>;
         <<1:1, _:7, _/binary>> ->
-            << <<(B bxor 16#FF)>> || <<B>> <= Bin >>
+            <<<<(B bxor 16#FF)>> || <<B>> <= Bin>>
     end.
 
-
+%% erlfmt-ignore
 decode(<<>>, 0) ->
     {[], <<>>};
 
@@ -374,11 +359,9 @@ decode(<<?VS96, Id:64/big, Batch:16/big, Tx:16/big, Rest/binary>>, Depth) ->
     {Values, Tail} = decode(Rest, Depth),
     {[{versionstamp, Id, Batch, Tx} | Values], Tail}.
 
-
 dec_null_terminated(Bin) ->
     {Parts, Tail} = dec_null_terminated(Bin, 0),
     {iolist_to_binary(Parts), Tail}.
-
 
 dec_null_terminated(Bin, Offset) ->
     case Bin of
@@ -393,7 +376,6 @@ dec_null_terminated(Bin, Offset) ->
             erlang:error({invalid_null_termination, Bin})
     end.
 
-
 dec_neg_int(Bin, Size, Depth) ->
     case Bin of
         <<Raw:Size/integer-unit:8, Rest/binary>> ->
@@ -404,7 +386,6 @@ dec_neg_int(Bin, Size, Depth) ->
             erlang:error({invalid_negative_int, Size, Bin})
     end.
 
-
 dec_pos_int(Bin, Size, Depth) ->
     case Bin of
         <<Val:Size/integer-unit:8, Rest/binary>> ->
@@ -414,16 +395,13 @@ dec_pos_int(Bin, Size, Depth) ->
             erlang:error({invalid_positive_int, Size, Bin})
     end.
 
-
 dec_float(<<0:1, _:7, _/binary>> = Bin) ->
-    erlfdb_float:decode(<< <<(B bxor 16#FF)>> || <<B>> <= Bin >>);
+    erlfdb_float:decode(<<<<(B bxor 16#FF)>> || <<B>> <= Bin>>);
 dec_float(<<Byte:8/integer, Rest/binary>>) ->
     erlfdb_float:decode(<<(Byte bxor 16#80):8/integer, Rest/binary>>).
 
-
 find_incomplete_versionstamp(Items) ->
     find_incomplete_versionstamp(Items, 0).
-
 
 find_incomplete_versionstamp([], Pos) ->
     {not_found, Pos};
@@ -462,7 +440,6 @@ find_incomplete_versionstamp([Item | Rest], Pos) when is_list(Item) ->
 find_incomplete_versionstamp([Bin | Rest], Pos) when is_binary(Bin) ->
     find_incomplete_versionstamp(Rest, Pos + size(Bin)).
 
-
 compare_elems(A, B) ->
     CodeA = code_for(A),
     CodeB = code_for(B),
@@ -486,7 +463,6 @@ compare_elems(A, B) ->
             0
     end.
 
-
 compare_floats(F1, F2) ->
     B1 = pack({F1}),
     B2 = pack({F2}),
@@ -495,7 +471,6 @@ compare_floats(F1, F2) ->
         B1 > B2 -> 1;
         true -> 0
     end.
-
 
 code_for(null) -> ?NULL;
 code_for(<<_/binary>>) -> ?BYTES;
@@ -514,11 +489,9 @@ code_for({versionstamp, _Id, _Batch, _Tx}) -> ?VS96;
 code_for(T) when is_tuple(T) -> ?NESTED;
 code_for(Bad) -> erlang:error({invalid_tuple_element, Bad}).
 
-
 -ifdef(TEST).
 
 -include_lib("eunit/include/eunit.hrl").
-
 
 fdb_vectors_test() ->
     % These are all from the tuple layer spec:
@@ -533,14 +506,12 @@ fdb_vectors_test() ->
             <<16#01, "foo", 16#00, 16#FF, "bar", 16#00>>
         },
         {
-            {{utf8,
-                unicode:characters_to_binary(["F", 16#D4, "O", 16#00, "bar"])}},
+            {{utf8, unicode:characters_to_binary(["F", 16#D4, "O", 16#00, "bar"])}},
             <<16#02, "F", 16#C3, 16#94, "O", 16#00, 16#FF, "bar", 16#00>>
         },
         {
             {{<<"foo", 16#00, "bar">>, null, {}}},
-            <<16#05, 16#01, "foo", 16#00, 16#FF, "bar", 16#00, 16#00,
-                        16#FF, 16#05, 16#00, 16#00>>
+            <<16#05, 16#01, "foo", 16#00, 16#FF, "bar", 16#00, 16#00, 16#FF, 16#05, 16#00, 16#00>>
         },
         {
             {-5551212},
@@ -551,34 +522,44 @@ fdb_vectors_test() ->
             <<16#20, 16#3D, 16#D7, 16#FF, 16#FF>>
         }
     ],
-    lists:foreach(fun({Test, Expect}) ->
-        ?assertEqual(Expect, pack(Test)),
-        ?assertEqual(Test, unpack(pack(Test)))
-    end, Cases).
-
+    lists:foreach(
+        fun({Test, Expect}) ->
+            ?assertEqual(Expect, pack(Test)),
+            ?assertEqual(Test, unpack(pack(Test)))
+        end,
+        Cases
+    ).
 
 bindingstester_discoveries_test() ->
     Pairs = [
-        {<<33,134,55,204,184,171,21,15,128>>, {1.048903115625475e-278}}
+        {<<33, 134, 55, 204, 184, 171, 21, 15, 128>>, {1.048903115625475e-278}}
     ],
-    lists:foreach(fun({Packed, Unpacked}) ->
-        ?assertEqual(Packed, pack(Unpacked)),
-        ?assertEqual(Unpacked, unpack(Packed))
-    end, Pairs),
+    lists:foreach(
+        fun({Packed, Unpacked}) ->
+            ?assertEqual(Packed, pack(Unpacked)),
+            ?assertEqual(Unpacked, unpack(Packed))
+        end,
+        Pairs
+    ),
 
     PackUnpackCases = [
         {-87469399449579948399912777925908893746277401541675257432930}
     ],
-    lists:foreach(fun(Test) ->
-        ?assertEqual(Test, unpack(pack(Test)))
-    end, PackUnpackCases),
+    lists:foreach(
+        fun(Test) ->
+            ?assertEqual(Test, unpack(pack(Test)))
+        end,
+        PackUnpackCases
+    ),
 
     UnpackPackCases = [
-        <<33,134,55,204,184,171,21,15,128>>
+        <<33, 134, 55, 204, 184, 171, 21, 15, 128>>
     ],
-    lists:foreach(fun(Test) ->
-        ?assertEqual(Test, pack(unpack(Test)))
-    end, UnpackPackCases).
-
+    lists:foreach(
+        fun(Test) ->
+            ?assertEqual(Test, pack(unpack(Test)))
+        end,
+        UnpackPackCases
+    ).
 
 -endif.
