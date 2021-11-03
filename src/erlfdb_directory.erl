@@ -461,9 +461,6 @@ find_deepest(Tx, Node, [PathName | RestPath]) ->
     end.
 
 
-create_or_open_int(TxObj, Node, {}, Layer) ->
-    create_or_open_int(TxObj, Node, [], Layer);
-
 create_or_open_int(_TxObj, Node, [], LayerIn) ->
     Layer = case LayerIn of
         <<>> -> <<>>;
