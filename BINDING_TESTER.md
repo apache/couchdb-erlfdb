@@ -9,7 +9,7 @@ files to register Erlang as a known binding. Assuming erlfdb has been built
 using `make`; the bindings tests be run directly via
 
 ```bash
-ERL_LIBS=/usr/src/erlfdb/ /usr/src/foundationdb/bindings/bindingtester/bindingtester.py erlang
+ERL_LIBS=/usr/src/erlfdb/_build/test/lib/erlfdb/ /usr/src/foundationdb/bindings/bindingtester/bindingtester.py erlang
 ```
 
 # Manual Approach
@@ -78,7 +78,7 @@ Database created
 
 ```bash
 $ cd /Users/davisp/github/davisp/foundationdb/bindings/bindingtester
-$ ERL_LIBS=/Users/davisp/github/labs-cloudant/couchdb-erlfdb/ PYTHONPATH=/Users/davisp/github/davisp/foundationdb/_build/bindings/python/ ./bindingtester.py --cluster-file /Users/davisp/tmp/fdbtest/fdb.cluster erlang
+$ ERL_LIBS=/Users/davisp/github/labs-cloudant/couchdb-erlfdb/_build/test/lib/erlfdb/ PYTHONPATH=/Users/davisp/github/davisp/foundationdb/_build/bindings/python/ ./bindingtester.py --cluster-file /Users/davisp/tmp/fdbtest/fdb.cluster erlang
 ```
 
 # Testing Notes
