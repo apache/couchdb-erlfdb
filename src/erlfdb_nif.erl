@@ -248,8 +248,7 @@ database_set_option({erlfdb_database, Db}, Opt, Val) ->
     erlfdb_database_set_option(Db, Opt, BinVal).
 
 
--spec database_create_transaction(database()) ->
-        {ok, transaction()}.
+-spec database_create_transaction(database()) -> transaction().
 database_create_transaction({erlfdb_database, Db}) ->
     erlfdb_database_create_transaction(Db).
 
@@ -309,7 +308,7 @@ transaction_get_addresses_for_key({erlfdb_transaction, Tx}, Key) ->
         StreamingMode::streaming_mode(),
         Iteration::non_neg_integer(),
         Snapshot::boolean(),
-        Reverse::boolean()
+        Reverse::integer()
     ) -> future().
 transaction_get_range(
         {erlfdb_transaction, Tx},
