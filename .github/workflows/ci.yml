@@ -90,3 +90,47 @@ jobs:
         if: ${{ failure() }}
         with:
           limit-access-to-actor: true
+
+  binding_tester:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-name: [api, directory, directory_hca, tuple]
+        api-version: [610, 620, 630]
+        include:
+          # The `scripted` test only supports the latest API version
+          - test-name: scripted
+            api-version: 630
+    container:
+      image: apache/couchdbci-debian:erlfdb-erlang-24.1.5.0-fdb-6.3.18-1
+    services:
+      foundationdb:
+        image: foundationdb/foundationdb:6.3.18
+    steps:
+      - name: Create FDB cluster file
+        env:
+          # This needs to match the name of the service above so the script can do
+          # a DNS lookup to write down the coordinator IP in the fdb.cluster file
+          FDB_COORDINATOR: foundationdb
+        shell: bash
+        run: /usr/local/bin/create_cluster_file.bash
+      - name: Initialize FDB database
+        run: fdbcli --exec "configure new single ssd"
+      - name: Check out repository code
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+      - name: Compile erlfdb
+        run: rebar3 compile
+      - name: Execute binding test
+        env:
+          TEST_NAME: ${{ matrix.test-name }}
+          API_VERSION: ${{ matrix.api-version }}
+          ERL_LIBS: _build/default/lib/erlfdb/
+        run: |
+          mkdir -p /usr/src/erlfdb/test/
+          ln -s $GITHUB_WORKSPACE/test/tester.es /usr/src/erlfdb/test/tester.es
+          /usr/src/foundationdb/bindings/bindingtester/bindingtester.py erlang \
+              --test-name $TEST_NAME \
+              --api-version $API_VERSION \
+              --num-ops 10000
