@@ -28,6 +28,8 @@ jobs:
         with:
           otp-version: '24'
           rebar3-version: '3.17'
+      - name: Enforce coding style
+        run: rebar3 fmt --check
       - name: Compile
         run: rebar3 compile
       - name: EUnit tests
