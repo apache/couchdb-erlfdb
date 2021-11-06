@@ -10,3 +10,7 @@ c_src/*.d
 c_src/*.o
 priv/erlfdb_nif.*
 _build/
+
+# Artifacts when an umbrella app (e.g. CouchDB) builds erlfdb using rebar2
+.rebar/
+ebin/
