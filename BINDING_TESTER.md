@@ -1,6 +1,19 @@
 Running the bindingstester
 ===
 
+# Easy Button: devcontainer
+
+The image build takes care of setting up an environment where the Erlang
+bindings can be tested. It clones the FDB repo and patches the necessary
+files to register Erlang as a known binding. Assuming erlfdb has been built
+using `make`; the bindings tests be run directly via
+
+```bash
+ERL_LIBS=/usr/src/erlfdb/_build/test/lib/erlfdb/ /usr/src/foundationdb/bindings/bindingtester/bindingtester.py erlang
+```
+
+# Manual Approach
+
 This assumes that all FoundationDB dependencies are installed properly. See
 the FoundationDB documentation for information on the dependencies.
 
@@ -65,8 +78,10 @@ Database created
 
 ```bash
 $ cd /Users/davisp/github/davisp/foundationdb/bindings/bindingtester
-$ ERL_LIBS=/Users/davisp/github/labs-cloudant/couchdb-erlfdb/ PYTHONPATH=/Users/davisp/github/davisp/foundationdb/_build/bindings/python/ ./bindingtester.py --cluster-file /Users/davisp/tmp/fdbtest/fdb.cluster erlang
+$ ERL_LIBS=/Users/davisp/github/labs-cloudant/couchdb-erlfdb/_build/test/lib/erlfdb/ PYTHONPATH=/Users/davisp/github/davisp/foundationdb/_build/bindings/python/ ./bindingtester.py --cluster-file /Users/davisp/tmp/fdbtest/fdb.cluster erlang
 ```
+
+# Testing Notes
 
 By default, `bindingtester.py` runs the `scripted.py` test which is a deterministic set of tests. To really try and soak test the bindings you should add the following command line parameters:
 

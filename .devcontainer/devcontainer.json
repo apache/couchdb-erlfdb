@@ -1,0 +1,17 @@
+{
+    "dockerComposeFile": "docker-compose.yaml",
+    "service": "erlfdb",
+    "workspaceFolder": "/usr/src/erlfdb",
+
+    // Create the fdb.cluster file, resolving the FDB service name to an IP
+    "onCreateCommand": ["bash", "/usr/local/bin/create_cluster_file.bash"],
+
+    // Initialize a new database. If the erlfdb container is being re-created,
+    // a database may already exist. In that case an error message will be
+    // printed in the logs and the existing database will be reused.
+    "postCreateCommand": "fdbcli --exec 'configure new single ssd'",
+
+    "extensions": [
+        "erlang-ls.erlang-ls"
+    ]
+}

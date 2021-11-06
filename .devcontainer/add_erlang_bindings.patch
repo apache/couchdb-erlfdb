@@ -1,0 +1,24 @@
+diff --git a/bindings/bindingtester/__init__.py b/bindings/bindingtester/__init__.py
+index 75454625c..fa20d37ab 100644
+--- a/bindings/bindingtester/__init__.py
++++ b/bindings/bindingtester/__init__.py
+@@ -22,7 +22,6 @@ import math
+ import sys
+ import os
+ 
+-sys.path[:0] = [os.path.join(os.path.dirname(__file__), '..', '..', 'bindings', 'python')]
+ 
+ import util
+ 
+diff --git a/bindings/bindingtester/known_testers.py b/bindings/bindingtester/known_testers.py
+index 2c5211a3d..30c1fafdc 100644
+--- a/bindings/bindingtester/known_testers.py
++++ b/bindings/bindingtester/known_testers.py
+@@ -57,6 +57,7 @@ _java_cmd = 'java -ea -cp %s:%s com.apple.foundationdb.test.' % (
+ 
+ # We could set min_api_version lower on some of these if the testers were updated to support them
+ testers = {
++    'erlang': Tester('erlang', '/usr/src/erlfdb/test/tester.es', 2040, 610, MAX_API_VERSION, types=ALL_TYPES),
+     'python': Tester('python', 'python ' + _absolute_path('python/tests/tester.py'), 2040, 23, MAX_API_VERSION, types=ALL_TYPES),
+     'python3': Tester('python3', 'python3 ' + _absolute_path('python/tests/tester.py'), 2040, 23, MAX_API_VERSION, types=ALL_TYPES),
+     'ruby': Tester('ruby', _absolute_path('ruby/tests/tester.rb'), 2040, 23, MAX_API_VERSION),
