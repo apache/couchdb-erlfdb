@@ -1,0 +1,34 @@
+% Hacky means to extract API version from fdbcli protocol version output
+% See https://github.com/apple/foundationdb/blob/master/flow/ProtocolVersion.h
+MaxAPIVersion =
+    begin
+        VsnInfo = os:cmd("fdbcli --version"),
+        {match, [ProtocolStr]} = re:run(VsnInfo, "protocol ([a-f0-9]*)", [{capture, [1], list}]),
+        ProtocolVsn = list_to_integer(ProtocolStr, 16),
+        APIVersionBytes = (ProtocolVsn band 16#0000000FFF00000) bsr 20,
+        integer_to_list(APIVersionBytes, 16)
+    end.
+
+[{port_env, [
+    {
+        "(linux|solaris|freebsd|netbsd|openbsd|dragonfly|darwin|gnu)",
+        "CFLAGS",
+        "$CFLAGS -I/usr/local/include -Ic_src/ -g -Wall -Werror -DFDB_API_VERSION=" ++ MaxAPIVersion
+    },
+    {
+        "win32",
+        "CFLAGS",
+        "$CFLAGS /I\"c:/Program Files/foundationdb/include\" /O2 /DNDEBUG /DFDB_API_VERSION=" ++ MaxAPIVersion
+    },
+
+    {
+        "(linux|solaris|freebsd|netbsd|openbsd|dragonfly|darwin|gnu)",
+        "LDFLAGS",
+        "$LDFLAGS -L/usr/local/lib -lfdb_c"
+    },
+    {
+        "win32",
+        "LDFLAGS",
+        "$LDFLAGS /LIBPATH:\"c:/Program Files/foundationdb/lib/foundationdb\" fdb_c.lib"
+    }
+]}] ++ CONFIG.
