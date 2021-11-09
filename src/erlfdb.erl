@@ -110,8 +110,9 @@
     has_watches/1,
     get_writes_allowed/1,
 
-    % Locality
+    % Locality and Statistics
     get_addresses_for_key/2,
+    get_estimated_range_size/3,
 
     % Get conflict information
     get_conflicting_keys/1,
@@ -544,6 +545,11 @@ get_addresses_for_key(?IS_TX = Tx, Key) ->
     erlfdb_nif:transaction_get_addresses_for_key(Tx, Key);
 get_addresses_for_key(?IS_SS = SS, Key) ->
     get_addresses_for_key(?GET_TX(SS), Key).
+
+get_estimated_range_size(?IS_TX = Tx, StartKey, EndKey) ->
+    erlfdb_nif:transaction_get_estimated_range_size(Tx, StartKey, EndKey);
+get_estimated_range_size(?IS_SS = SS, StartKey, EndKey) ->
+    erlfdb_nif:transaction_get_estimated_range_size(?GET_TX(SS), StartKey, EndKey).
 
 get_conflicting_keys(?IS_TX = Tx) ->
     StartKey = <<16#FF, 16#FF, "/transaction/conflicting_keys/">>,

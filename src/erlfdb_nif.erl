@@ -36,6 +36,7 @@
     transaction_set_read_version/2,
     transaction_get_read_version/1,
     transaction_get/3,
+    transaction_get_estimated_range_size/3,
     transaction_get_key/3,
     transaction_get_addresses_for_key/2,
     transaction_get_range/9,
@@ -265,6 +266,14 @@ transaction_get_read_version({erlfdb_transaction, Tx}) ->
     future().
 transaction_get({erlfdb_transaction, Tx}, Key, Snapshot) ->
     erlfdb_transaction_get(Tx, Key, Snapshot).
+
+-spec transaction_get_estimated_range_size(
+    transaction(),
+    StartKey :: binary(),
+    EndKey :: binary()
+) -> future().
+transaction_get_estimated_range_size({erlfdb_transaction, Tx}, StartKey, EndKey) ->
+    erlfdb_transaction_get_estimated_range_size(Tx, StartKey, EndKey).
 
 -spec transaction_get_key(
     transaction(),
@@ -511,6 +520,7 @@ erlfdb_transaction_set_option(_Transaction, _TransactionOption, _Value) -> ?NOT_
 erlfdb_transaction_set_read_version(_Transaction, _Version) -> ?NOT_LOADED.
 erlfdb_transaction_get_read_version(_Transaction) -> ?NOT_LOADED.
 erlfdb_transaction_get(_Transaction, _Key, _Snapshot) -> ?NOT_LOADED.
+erlfdb_transaction_get_estimated_range_size(_Transaction, _SKey, _EKey) -> ?NOT_LOADED.
 erlfdb_transaction_get_key(_Transaction, _KeySelector, _Snapshot) -> ?NOT_LOADED.
 erlfdb_transaction_get_addresses_for_key(_Transaction, _Key) -> ?NOT_LOADED.
 erlfdb_transaction_get_range(
