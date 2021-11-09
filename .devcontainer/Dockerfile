@@ -20,12 +20,15 @@ RUN set -ex; \
 
 # FDB bindings tester uses the Python bindings; install them from a
 # package to avoid building FDB from source
-# TODO FDB 6.3+ uses python3, we'll need to update it here
 RUN set -ex; \
     wget https://www.foundationdb.org/downloads/${FDB_VERSION}/bindings/python/foundationdb-${FDB_VERSION}.tar.gz; \
     tar zxf foundationdb-${FDB_VERSION}.tar.gz; \
     cd foundationdb-${FDB_VERSION}; \
-    python setup.py install; \
+    if [ "${FDB_VERSION}" < "6.3.0" ]; then \
+        python setup.py install; \
+    else \
+        python3 setup.py install; \
+    fi; \
     rm ../foundationdb-${FDB_VERSION}.tar.gz
 
 # Clone FoundationDB repo to retrieve bindings tester package and
