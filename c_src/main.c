@@ -504,7 +504,13 @@ erlfdb_network_set_option(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         option = FDB_NET_OPTION_DISABLE_CLIENT_STATISTICS_LOGGING;
     } else if(IS_ATOM(argv[0], enable_slow_task_profiling)) {
         option = FDB_NET_OPTION_ENABLE_SLOW_TASK_PROFILING;
-    } else {
+    }
+    #if FDB_API_VERSION >= 630
+    else if(IS_ATOM(argv[0], enable_run_loop_profiling)) {
+        option = FDB_NET_OPTION_ENABLE_RUN_LOOP_PROFILING;
+    }
+    #endif
+    else {
         return enif_make_badarg(env);
     }
 

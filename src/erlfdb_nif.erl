@@ -110,7 +110,9 @@
     | external_client_directory
     | disable_local_client
     | disable_client_statistics_logging
-    | enable_slow_task_profiling.
+    | enable_slow_task_profiling
+    % API version 630+
+    | enable_run_loop_profiling.
 
 -type database_option() ::
     location_cache_size
