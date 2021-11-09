@@ -12,11 +12,9 @@
 
 -module(erlfdb_subspace).
 
-
 -record(erlfdb_subspace, {
     prefix
 }).
-
 
 -export([
     create/1,
@@ -40,46 +38,35 @@
     subspace/2
 ]).
 
-
 -define(PREFIX(S), S#erlfdb_subspace.prefix).
-
 
 create(Tuple) ->
     create(Tuple, <<>>).
 
-
 create(#erlfdb_subspace{} = Subspace, Tuple) when is_tuple(Tuple) ->
     create(Tuple, ?PREFIX(Subspace));
-
 create(Tuple, Prefix) when is_tuple(Tuple), is_binary(Prefix) ->
     #erlfdb_subspace{
         prefix = erlfdb_tuple:pack(Tuple, Prefix)
     }.
 
-
 add(#erlfdb_subspace{} = Subspace, Item) ->
     create({Item}, ?PREFIX(Subspace)).
-
 
 key(#erlfdb_subspace{} = Subspace) ->
     Subspace#erlfdb_subspace.prefix.
 
-
 pack(Subspace) ->
     pack(Subspace, {}).
-
 
 pack(#erlfdb_subspace{} = Subspace, Tuple) when is_tuple(Tuple) ->
     erlfdb_tuple:pack(Tuple, ?PREFIX(Subspace)).
 
-
 pack_vs(Subspace) ->
     pack_vs(Subspace, {}).
 
-
 pack_vs(#erlfdb_subspace{} = Subspace, Tuple) when is_tuple(Tuple) ->
     erlfdb_tuple:pack_vs(Tuple, ?PREFIX(Subspace)).
-
 
 unpack(#erlfdb_subspace{} = Subspace, Key) ->
     case contains(Subspace, Key) of
@@ -91,10 +78,8 @@ unpack(#erlfdb_subspace{} = Subspace, Key) ->
             erlang:error({key_not_in_subspace, Subspace, Key})
     end.
 
-
 range(Subspace) ->
     range(Subspace, {}).
-
 
 range(#erlfdb_subspace{} = Subspace, Tuple) when is_tuple(Tuple) ->
     Prefix = ?PREFIX(Subspace),
@@ -105,7 +90,6 @@ range(#erlfdb_subspace{} = Subspace, Tuple) when is_tuple(Tuple) ->
         <<Prefix:PrefixLen/binary, End/binary>>
     }.
 
-
 contains(#erlfdb_subspace{} = Subspace, Key) ->
     Prefix = ?PREFIX(Subspace),
     PrefLen = size(Prefix),
@@ -115,7 +99,6 @@ contains(#erlfdb_subspace{} = Subspace, Key) ->
         _ ->
             false
     end.
-
 
 subspace(#erlfdb_subspace{} = Subspace, Tuple) ->
     create(Subspace, Tuple).

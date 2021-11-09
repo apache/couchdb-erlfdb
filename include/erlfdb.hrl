@@ -10,26 +10,27 @@
 % License for the specific language governing permissions and limitations under
 % the License.
 
-
 -define(ERLFDB_ERROR(Reason), erlang:error({?MODULE, Reason})).
-
 
 -define(ERLFDB_PACK(Tuple), erlfdb_tuple:pack(Tuple)).
 -define(ERLFDB_PACK(Prefix, Tuple), erlfdb_tuple:pack(Tuple, Prefix)).
 
 -define(ERLFDB_RANGE(Prefix),
-        erlfdb_subspace:range(erlfdb_subspace:create({}, Prefix))).
+    erlfdb_subspace:range(erlfdb_subspace:create({}, Prefix))
+).
 -define(ERLFDB_RANGE(Prefix, Term),
-        erlfdb_subspace:range(erlfdb_subspace:create({Term}, Prefix))).
+    erlfdb_subspace:range(erlfdb_subspace:create({Term}, Prefix))
+).
 
 -define(ERLFDB_EXTEND(Prefix, Term), erlfdb_tuple:pack({Term}, Prefix)).
 
--define(ERLFDB_EXTRACT(Prefix, Packed), (fun() ->
+-define(ERLFDB_EXTRACT(Prefix, Packed),
+    (fun() ->
         __PrefixLen = size(Prefix),
         <<Prefix:__PrefixLen/binary, __Tail/binary>> = Packed,
         erlfdb_tuple:unpack(__Tail)
-    end)()).
-
+    end)()
+).
 
 % Most of the retriable FDB errors. The list of errors can be generated with
 % something like [erlfdb:get_error_string(C) || C <- lists:seq(1, 5000),
@@ -54,6 +55,7 @@
 % include ?TRANSACTION_TIMED_OUT. In some cases it may make sense to also
 % consider that error as retryable.
 %
+%% erlfmt-ignore
 -define(ERLFDB_IS_RETRYABLE(Code), (
     (Code == ?ERLFDB_TRANSACTION_TOO_OLD) orelse
     (Code == ?ERLFDB_FUTURE_VERSION) orelse

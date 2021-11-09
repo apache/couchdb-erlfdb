@@ -14,12 +14,14 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
-
 get_tx_id_test() ->
     Db = erlfdb_util:get_test_db(),
     erlfdb:transactional(Db, fun(Tx) ->
-        lists:foreach(fun(I) ->
-            ?assertEqual(I, erlfdb:get_next_tx_id(Tx))
-        end, lists:seq(0, 65535)),
+        lists:foreach(
+            fun(I) ->
+                ?assertEqual(I, erlfdb:get_next_tx_id(Tx))
+            end,
+            lists:seq(0, 65535)
+        ),
         ?assertError(badarg, erlfdb:get_next_tx_id(Tx))
     end).
