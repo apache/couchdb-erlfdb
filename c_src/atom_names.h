@@ -64,6 +64,7 @@ ATOM_MAP(external_client_directory);
 ATOM_MAP(disable_local_client);
 ATOM_MAP(disable_client_statistics_logging);
 ATOM_MAP(enable_slow_task_profiling);
+ATOM_MAP(enable_run_loop_profiling);
 
 
 // Database Options
