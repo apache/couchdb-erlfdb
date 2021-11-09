@@ -485,6 +485,22 @@ execute(TxObj, St, <<"GET">>) ->
     end,
     St;
 
+execute(TxObj, St, <<"GET_ESTIMATED_RANGE_SIZE">>) ->
+    [StartKey, EndKey] = stack_pop(St, 2),
+    Value = case erlfdb:get_estimated_range_size(TxObj, StartKey, EndKey) of
+        {erlfdb_future, _, _} = Future ->
+            erlfdb:wait(Future);
+        Else ->
+            Else
+    end,
+    case Value of
+        Size when is_integer(Size) ->
+            stack_push(St, <<"GOT_ESTIMATED_RANGE_SIZE">>);
+        BadResult ->
+            stack_push(St, BadResult)
+    end,
+    St;
+
 execute(TxObj, St, <<"GET_KEY">>) ->
     [Key, OrEqual, Offset, Prefix] = stack_pop(St, 4),
     Selector = {Key, OrEqual, Offset},
