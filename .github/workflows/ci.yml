@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
 
   build_on_linux:
@@ -106,6 +109,14 @@ jobs:
     services:
       foundationdb:
         image: foundationdb/foundationdb:6.3.18
+    env:
+      # We could create a different profile that looks for fdb.cluster in the
+      # default /etc/foundationdb/ location, but for now we can just specify the
+      # custom location here
+      FDB_CLUSTER_FILE: /usr/local/etc/foundationdb/fdb.cluster
+      # This profile just ensures we use the FDB server in the service container
+      REBAR_PROFILE: devcontainer
+      DIAGNOSTIC: 1
     steps:
       - name: Create FDB cluster file
         env:
@@ -122,15 +133,42 @@ jobs:
           persist-credentials: false
       - name: Compile erlfdb
         run: rebar3 compile
+      - name: Execute unit tests
+        run: rebar3 eunit
       - name: Execute binding test
         env:
           TEST_NAME: ${{ matrix.test-name }}
           API_VERSION: ${{ matrix.api-version }}
-          ERL_LIBS: _build/default/lib/erlfdb/
+          COVER_ENABLED: true
+          ERL_LIBS: _build/devcontainer+test/lib/erlfdb/
         run: |
           mkdir -p /usr/src/erlfdb/test/
           ln -s $GITHUB_WORKSPACE/test/tester.es /usr/src/erlfdb/test/tester.es
           /usr/src/foundationdb/bindings/bindingtester/bindingtester.py erlang \
               --test-name $TEST_NAME \
               --api-version $API_VERSION \
+              --instruction-prefix $TEST_NAME \
               --num-ops 10000
+      - name: Upload results to Coveralls
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_FLAG_NAME: bindingtest-${{ matrix.test-name }}-${{ matrix.api-version }}
+        run: rebar3 as test coveralls send
+
+
+  finish:
+    needs: [build_on_linux, build_on_windows, binding_tester]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Finalize Coveralls report
+        run: |
+          curl https://coveralls.io/webhook \
+           --header 'Content-Type: application/json' \
+            --data '{
+                "repo_name": "${{ github.repository }}",
+                "repo_token": "${{ secrets.GITHUB_TOKEN }}",
+                "payload": {
+                  "build_num": ${{ github.run_number }},
+                  "status": "done"
+                }
+              }'
