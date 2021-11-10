@@ -1020,6 +1020,27 @@ get_dir_or_ss_mod(#{}) ->
     erlfdb_directory.
 
 
+maybe_cover_compile() ->
+    case os:getenv("COVER_ENABLED") of
+        Cover when Cover == false; Cover == "" ->
+            ok;
+        _ ->
+            cover:compile_beam_directory(code:lib_dir(erlfdb, ebin))
+    end.
+
+maybe_write_coverdata(Prefix, APIVsn) ->
+    case os:getenv("COVER_ENABLED") of
+        Cover when Cover == false; Cover == "" ->
+            ok;
+        _ ->
+            CoverDir = filename:join(code:lib_dir(erlfdb), "../../cover/"),
+            Filename = io_lib:format("bindingtest-~s-~s.coverdata", [Prefix, APIVsn]),
+            Path = filename:join(CoverDir, Filename),
+            filelib:ensure_dir(Path),
+            cover:export(Path)
+    end.
+
+
 main([Prefix, APIVsn]) ->
     main([Prefix, APIVsn, ""]);
 
@@ -1028,6 +1049,8 @@ main([Prefix, APIVsn, ClusterFileStr]) ->
     %% io:get_line(Prompt),
     %% io:format("Running tests: ~s ~s ~s~n", [Prefix, APIVsn, ClusterFileStr]),
 
+    maybe_cover_compile(),
     application:set_env(erlfdb, api_version, list_to_integer(APIVsn)),
     Db = erlfdb:open(iolist_to_binary(ClusterFileStr)),
-    init_run_loop(Db, iolist_to_binary(Prefix)).
+    init_run_loop(Db, iolist_to_binary(Prefix)),
+    maybe_write_coverdata(Prefix, APIVsn).
