@@ -265,7 +265,7 @@ erlfdb_future_get_string_array(ErlNifEnv* env, ErlFDBFuture* f)
 
     ret = enif_make_list(env, 0);
 
-    for(i = count; i > 0; i--) {
+    for(i = count - 1; i >= 0; i--) {
         buf = enif_make_new_binary(env, strlen(strings[i]), &bin);
         memcpy(buf, strings[i], strlen(strings[i]));
         ret = enif_make_list_cell(env, bin, ret);
