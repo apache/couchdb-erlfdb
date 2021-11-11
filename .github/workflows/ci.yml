@@ -10,84 +10,14 @@ permissions:
 
 jobs:
 
-  otp_version_matrix:
+  otp_fdb_matrix:
     strategy:
       matrix:
-        otp-version: ['20', '21', '22', '23', '24']
+        otp-version: ['22', '23', '24']
         fdb-version: ['6.3.22']
     runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository code
-        uses: actions/checkout@v2
-        with:
-          persist-credentials: false
-          submodules: recursive
-      - name: Install FoundationDB
-        env:
-          FDB_VERSION: ${{ matrix.fdb-version }}
-        run: |
-          wget https://www.foundationdb.org/downloads/${FDB_VERSION}/ubuntu/installers/foundationdb-clients_${FDB_VERSION}-1_amd64.deb
-          wget https://www.foundationdb.org/downloads/${FDB_VERSION}/ubuntu/installers/foundationdb-server_${FDB_VERSION}-1_amd64.deb
-          sudo dpkg -i foundationdb-clients_${FDB_VERSION}-1_amd64.deb
-          sudo dpkg -i foundationdb-server_${FDB_VERSION}-1_amd64.deb
-      - name: Setup Erlang
-        uses: ./.github/actions/setup-beam
-        with:
-          otp-version: ${{ matrix.otp-version }}
-          rebar3-version: '3.17'
-      - name: Compile
-        run: rebar3 compile
-      - name: EUnit tests
-        run: rebar3 eunit
-      - name: Setup tmate session on job failure
-        uses: ./.github/actions/tmate
-        if: ${{ failure() }}
-        with:
-          limit-access-to-actor: true
-
-  build_on_linux:
-    strategy:
-      matrix:
-        fdb-version: ['6.2.30', '6.3.22']
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository code
-        uses: actions/checkout@v2
-        with:
-          persist-credentials: false
-          submodules: recursive
-      - name: Install FoundationDB
-        env:
-          FDB_VERSION: ${{ matrix.fdb-version }}
-        run: |
-          wget https://www.foundationdb.org/downloads/${FDB_VERSION}/ubuntu/installers/foundationdb-clients_${FDB_VERSION}-1_amd64.deb
-          wget https://www.foundationdb.org/downloads/${FDB_VERSION}/ubuntu/installers/foundationdb-server_${FDB_VERSION}-1_amd64.deb
-          sudo dpkg -i foundationdb-clients_${FDB_VERSION}-1_amd64.deb
-          sudo dpkg -i foundationdb-server_${FDB_VERSION}-1_amd64.deb
-      - name: Setup Erlang
-        uses: ./.github/actions/setup-beam
-        with:
-          otp-version: '24'
-          rebar3-version: '3.17'
-      - name: Enforce coding style
-        run: rebar3 fmt --check
-      - name: Compile
-        run: rebar3 compile
-      - name: EUnit tests
-        run: rebar3 eunit
-      - name: Setup tmate session on job failure
-        uses: ./.github/actions/tmate
-        if: ${{ failure() }}
-        with:
-          limit-access-to-actor: true
-
-  build_on_windows:
-    strategy:
-      matrix:
-        # Windows builds are not being published beyond 6.3.9 right now
-        fdb-version: ['6.2.30', '6.3.9']
-    runs-on: windows-latest
     env:
+      FDB_VERSION: ${{ matrix.fdb-version }}
       # Set to 1 for verbose rebar3 logging
       DEBUG: 0
       # Set to 1 for even more verbose rebar3 logging
@@ -98,25 +28,87 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+      - name: Setup Erlang
+        uses: ./.github/actions/setup-beam
+        with:
+          otp-version: ${{ matrix.otp-version }}
+          rebar3-version: '3.17'
       - name: Install FoundationDB
-        env:
-          FDB_VERSION: ${{ matrix.fdb-version }}
-        # Download FDB .msi, install it, and add FDB to the $env:Path for all future steps
         run: |
-          Set-PSDebug -Trace 1
-          Invoke-WebRequest -Uri https://www.foundationdb.org/downloads/$env:FDB_VERSION/windows/installers/foundationdb-$env:FDB_VERSION-x64.msi -OutFile foundationdb-$env:FDB_VERSION-x64.msi
-          msiexec /i foundationdb-$env:FDB_VERSION-x64.msi /passive
-          echo "c:/Program Files/foundationdb/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          wget https://www.foundationdb.org/downloads/${FDB_VERSION}/ubuntu/installers/foundationdb-clients_${FDB_VERSION}-1_amd64.deb
+          wget https://www.foundationdb.org/downloads/${FDB_VERSION}/ubuntu/installers/foundationdb-server_${FDB_VERSION}-1_amd64.deb
+          sudo dpkg -i foundationdb-clients_${FDB_VERSION}-1_amd64.deb
+          sudo dpkg -i foundationdb-server_${FDB_VERSION}-1_amd64.deb
+      - name: Compile
+        run: rebar3 compile
+      - name: EUnit tests
+        run: rebar3 eunit
+      - name: Setup tmate session on job failure
+        uses: ./.github/actions/tmate
+        if: ${{ failure() }}
+        with:
+          limit-access-to-actor: true
+
+  os_fdb_matrix:
+    strategy:
+      matrix:
+        # erlef/setup-beam action does not support macos yet
+        os: [ubuntu-latest, windows-latest]
+        fdb-version: ['6.2.30', '6.3.22']
+        # Windows builds are not being published beyond 6.3.9 right now
+        exclude:
+          - os: windows-latest
+            fdb-version: '6.3.22'
+        include:
+          - os: windows-latest
+            fdb-version: '6.3.9'
+    runs-on: ${{ matrix.os }}
+    env:
+      FDB_VERSION: ${{ matrix.fdb-version }}
+      # Set to 1 for verbose rebar3 logging
+      DEBUG: 0
+      # Set to 1 for even more verbose rebar3 logging
+      DIAGNOSTIC: 0
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
       - name: Setup Erlang
         uses: ./.github/actions/setup-beam
         with:
           otp-version: '24'
           rebar3-version: '3.17'
       - name: Setup MSVC toolchain
+        if: ${{ matrix.os == 'windows-latest' }}
         uses: ./.github/actions/msvc-dev-cmd
+      - name: Install FoundationDB (Ubuntu)
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          wget https://www.foundationdb.org/downloads/${FDB_VERSION}/ubuntu/installers/foundationdb-clients_${FDB_VERSION}-1_amd64.deb
+          wget https://www.foundationdb.org/downloads/${FDB_VERSION}/ubuntu/installers/foundationdb-server_${FDB_VERSION}-1_amd64.deb
+          sudo dpkg -i foundationdb-clients_${FDB_VERSION}-1_amd64.deb
+          sudo dpkg -i foundationdb-server_${FDB_VERSION}-1_amd64.deb
+      - name: Install FoundationDB (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          Set-PSDebug -Trace 1
+          Invoke-WebRequest -Uri https://www.foundationdb.org/downloads/$env:FDB_VERSION/windows/installers/foundationdb-$env:FDB_VERSION-x64.msi -OutFile foundationdb-$env:FDB_VERSION-x64.msi
+          msiexec /i foundationdb-$env:FDB_VERSION-x64.msi /passive
+          echo "c:/Program Files/foundationdb/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Install FoundationDB (macOS)
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: |
+          wget https://www.foundationdb.org/downloads/${FDB_VERSION}/macOS/installers/FoundationDB-${FDB_VERSION}.pkg
+          sudo installer -allowUntrusted -verboseR -pkg FoundationDB-${FDB_VERSION}.pkg -target /
       - name: Compile
         run: rebar3 compile
       - name: EUnit tests
+        if: ${{ matrix.os != 'windows-latest' }}
+        run: rebar3 eunit
+      - name: EUnit tests (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
         env:
           # This profile uses the FDB server started in the "Install FoundationDB" step
           # instead of starting another one (the code that manages the "local" FDB in the
@@ -191,7 +183,7 @@ jobs:
         run: rebar3 as test coveralls send
 
   finalize_coverage_report:
-    needs: [otp_version_matrix, build_on_linux, build_on_windows, binding_tester]
+    needs: [binding_tester]
     runs-on: ubuntu-latest
     steps:
       - name: Finalize Coveralls report
