@@ -65,6 +65,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       FDB_VERSION: ${{ matrix.fdb-version }}
+      # This profile uses the FDB server started in the "Install FoundationDB" step
+      # instead of starting another one (the code that manages the "local" FDB in the
+      # test suite is not designed with x-platform compatibility in mind)
+      REBAR_PROFILE: devcontainer
       # Set to 1 for verbose rebar3 logging
       DEBUG: 0
       # Set to 1 for even more verbose rebar3 logging
@@ -105,15 +109,6 @@ jobs:
       - name: Compile
         run: rebar3 compile
       - name: EUnit tests
-        if: ${{ matrix.os != 'windows-latest' }}
-        run: rebar3 eunit
-      - name: EUnit tests (Windows)
-        if: ${{ matrix.os == 'windows-latest' }}
-        env:
-          # This profile uses the FDB server started in the "Install FoundationDB" step
-          # instead of starting another one (the code that manages the "local" FDB in the
-          # test suite is not designed with x-platform compatibility in mind)
-          REBAR_PROFILE: win32_external_fdbserver
         run: rebar3 eunit
       - name: Setup tmate session on job failure
         uses: ./.github/actions/tmate
@@ -137,13 +132,8 @@ jobs:
       foundationdb:
         image: foundationdb/foundationdb:6.3.18
     env:
-      # We could create a different profile that looks for fdb.cluster in the
-      # default /etc/foundationdb/ location, but for now we can just specify the
-      # custom location here
-      FDB_CLUSTER_FILE: /usr/local/etc/foundationdb/fdb.cluster
       # This profile just ensures we use the FDB server in the service container
       REBAR_PROFILE: devcontainer
-      DIAGNOSTIC: 1
     steps:
       - name: Create FDB cluster file
         env:
