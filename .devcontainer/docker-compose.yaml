@@ -13,16 +13,9 @@ services:
       # This needs to match the name of the FoundationDB service below
       FDB_COORDINATOR: fdb
 
-      # The location where the Dockerfile installs the FDB cluster file
-      # retrieved from the `fdb` image. CouchDB looks for the cluster file in
-      # this location by default. If you want to install it somewhere else you
-      # you need to change "[erlfdb] cluster_file" and ERL_ZFLAGS to match.
-      FDB_CLUSTER_FILE: /usr/local/etc/foundationdb/fdb.cluster
-
-      # The test suite will default to trying to start its own fdbserver
-      # process. This environment variable tells it to use the fdbserver
-      # running in the `fdb` image instead. Quite a hacky solution.
-      ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"/usr/local/etc/foundationdb/fdb.cluster\\\">>"
+      # This profile ensures we use the FDB server in the sibling container
+      # for the EUnit test suite
+      REBAR_PROFILE: devcontainer
 
     volumes:
       # Mounts the project folder to '/usr/src/erlfdb'. The target path inside
