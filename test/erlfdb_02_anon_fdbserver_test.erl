@@ -33,7 +33,7 @@ get_db_test() ->
 
 get_set_get_test() ->
     Db = erlfdb_util:get_test_db(),
-    Key = crypto:strong_rand_bytes(8),
+    Key = gen_key(8),
     Val = crypto:strong_rand_bytes(8),
     erlfdb:transactional(Db, fun(Tx) ->
         ?assertEqual(not_found, erlfdb:wait(erlfdb:get(Tx, Key)))
@@ -47,7 +47,7 @@ get_set_get_test() ->
 
 get_empty_test() ->
     Db1 = erlfdb_util:get_test_db(),
-    Key = crypto:strong_rand_bytes(8),
+    Key = gen_key(8),
     Val = crypto:strong_rand_bytes(8),
     erlfdb:transactional(Db1, fun(Tx) ->
         ok = erlfdb:set(Tx, Key, Val)
@@ -67,3 +67,7 @@ get_empty_test() ->
     erlfdb:transactional(Db1, fun(Tx) ->
         ?assertEqual(not_found, erlfdb:wait(erlfdb:get(Tx, Key)))
     end).
+
+gen_key(Size) when is_integer(Size), Size > 1 ->
+    RandBin = crypto:strong_rand_bytes(Size - 1),
+    <<0, RandBin/binary>>.
