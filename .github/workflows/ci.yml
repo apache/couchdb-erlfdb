@@ -35,8 +35,8 @@ jobs:
           rebar3-version: '3.17'
       - name: Install FoundationDB
         run: |
-          wget https://www.foundationdb.org/downloads/${FDB_VERSION}/ubuntu/installers/foundationdb-clients_${FDB_VERSION}-1_amd64.deb
-          wget https://www.foundationdb.org/downloads/${FDB_VERSION}/ubuntu/installers/foundationdb-server_${FDB_VERSION}-1_amd64.deb
+          wget https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/foundationdb-clients_${FDB_VERSION}-1_amd64.deb
+          wget https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/foundationdb-server_${FDB_VERSION}-1_amd64.deb
           sudo dpkg -i foundationdb-clients_${FDB_VERSION}-1_amd64.deb
           sudo dpkg -i foundationdb-server_${FDB_VERSION}-1_amd64.deb
       - name: Compile
@@ -90,21 +90,21 @@ jobs:
       - name: Install FoundationDB (Ubuntu)
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          wget https://www.foundationdb.org/downloads/${FDB_VERSION}/ubuntu/installers/foundationdb-clients_${FDB_VERSION}-1_amd64.deb
-          wget https://www.foundationdb.org/downloads/${FDB_VERSION}/ubuntu/installers/foundationdb-server_${FDB_VERSION}-1_amd64.deb
+          wget https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/foundationdb-clients_${FDB_VERSION}-1_amd64.deb
+          wget https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/foundationdb-server_${FDB_VERSION}-1_amd64.deb
           sudo dpkg -i foundationdb-clients_${FDB_VERSION}-1_amd64.deb
           sudo dpkg -i foundationdb-server_${FDB_VERSION}-1_amd64.deb
       - name: Install FoundationDB (Windows)
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
           Set-PSDebug -Trace 1
-          Invoke-WebRequest -Uri https://www.foundationdb.org/downloads/$env:FDB_VERSION/windows/installers/foundationdb-$env:FDB_VERSION-x64.msi -OutFile foundationdb-$env:FDB_VERSION-x64.msi
+          Invoke-WebRequest -Uri https://github.com/apple/foundationdb/releases/download/$env:FDB_VERSION/foundationdb-$env:FDB_VERSION-x64.msi -OutFile foundationdb-$env:FDB_VERSION-x64.msi
           msiexec /i foundationdb-$env:FDB_VERSION-x64.msi /passive
           echo "c:/Program Files/foundationdb/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Install FoundationDB (macOS)
         if: ${{ matrix.os == 'macos-latest' }}
         run: |
-          wget https://www.foundationdb.org/downloads/${FDB_VERSION}/macOS/installers/FoundationDB-${FDB_VERSION}.pkg
+          wget https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/FoundationDB-${FDB_VERSION}.pkg
           sudo installer -allowUntrusted -verboseR -pkg FoundationDB-${FDB_VERSION}.pkg -target /
       - name: Compile
         run: rebar3 compile
