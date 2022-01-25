@@ -99,8 +99,8 @@ jobs:
         run: |
           Set-PSDebug -Trace 1
           Invoke-WebRequest -Uri https://github.com/apple/foundationdb/releases/download/$env:FDB_VERSION/foundationdb-$env:FDB_VERSION-x64.msi -OutFile foundationdb-$env:FDB_VERSION-x64.msi
-          msiexec /i foundationdb-$env:FDB_VERSION-x64.msi /passive
-          echo "c:/Program Files/foundationdb/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Start-Process -Wait -FilePath msiexec -ArgumentList /i, foundationdb-$env:FDB_VERSION-x64.msi, /passive
+          echo "C:\Program Files\foundationdb\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Install FoundationDB (macOS)
         if: ${{ matrix.os == 'macos-latest' }}
         run: |
