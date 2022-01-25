@@ -13,23 +13,11 @@ ARG FDB_VERSION
 
 # Install the FDB client used underneath erlfdb
 RUN set -ex; \
-    wget https://www.foundationdb.org/downloads/${FDB_VERSION}/ubuntu/installers/foundationdb-clients_${FDB_VERSION}-1_amd64.deb; \
+    wget https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/foundationdb-clients_${FDB_VERSION}-1_amd64.deb; \
     mkdir /var/lib/foundationdb; \
     dpkg -i foundationdb-clients_${FDB_VERSION}-1_amd64.deb; \
     rm foundationdb-clients_${FDB_VERSION}-1_amd64.deb
 
-# FDB bindings tester uses the Python bindings; install them from a
-# package to avoid building FDB from source
-RUN set -ex; \
-    wget https://www.foundationdb.org/downloads/${FDB_VERSION}/bindings/python/foundationdb-${FDB_VERSION}.tar.gz; \
-    tar zxf foundationdb-${FDB_VERSION}.tar.gz; \
-    cd foundationdb-${FDB_VERSION}; \
-    if [ "${FDB_VERSION}" < "6.3.0" ]; then \
-        python setup.py install; \
-    else \
-        python3 setup.py install; \
-    fi; \
-    rm ../foundationdb-${FDB_VERSION}.tar.gz
 
 # Clone FoundationDB repo to retrieve bindings tester package and
 # patch it to support erlfdb
@@ -43,9 +31,14 @@ RUN set -ex; \
 RUN set -ex; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-        dnsutils; \
+        dnsutils \
+        python3-setuptools \
+        python3-pip; \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=fdb /var/fdb/scripts/create_cluster_file.bash /usr/local/bin/
+# FDB bindings tester uses the Python bindings
+RUN pip3 install foundationdb==${FDB_VERSION}
+
+COPY create_cluster_file.bash /usr/local/bin/
 
 CMD sleep infinity

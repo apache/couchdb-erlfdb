@@ -7,7 +7,7 @@ services:
         ERLANG_VERSION: "24"
 
         # This should always match the value in fdb.image
-        FDB_VERSION: "6.2.30"
+        FDB_VERSION: "6.3.23"
 
     environment:
       # This needs to match the name of the FoundationDB service below
@@ -28,4 +28,4 @@ services:
     network_mode: service:fdb
 
   fdb:
-    image: foundationdb/foundationdb:6.2.30
+    image: foundationdb/foundationdb:6.3.23
