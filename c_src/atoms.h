@@ -22,7 +22,7 @@
 #undef ATOM_MAP
 
 
-void erlfdb_init_atoms();
+void erlfdb_init_atoms(ErlNifEnv* env);
 
 
 #endif // Included atoms.h
