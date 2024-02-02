@@ -766,6 +766,54 @@ erlfdb_create_database(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
 
 static ERL_NIF_TERM
+erlfdb_database_open_tenant(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    ErlNifBinary bin;
+    ErlFDBDatabase* d;
+    ErlFDBTenant* ten;
+    FDBTenant* tenant;
+    fdb_error_t err;
+    ERL_NIF_TERM ret;
+    void* res;
+
+    if(st->lib_state != ErlFDB_CONNECTED) {
+        return enif_make_badarg(env);
+    }
+
+    if(argc != 2) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_resource(env, argv[0], ErlFDBDatabaseRes, &res)) {
+        return enif_make_badarg(env);
+    }
+    d = (ErlFDBDatabase*) res;
+
+    if(!enif_inspect_binary(env, argv[1], &bin)) {
+        return enif_make_badarg(env);
+    }
+
+    if(bin.size < 1 || bin.data[bin.size - 1] != 0) {
+        return enif_make_badarg(env);
+    }
+
+    err = fdb_database_open_tenant(d->database, (const unsigned char*) bin.data, bin.size-1, &tenant);
+    if(err != 0) {
+        return erlfdb_erlang_error(env, err);
+    }
+
+    ten = enif_alloc_resource(ErlFDBTenantRes, sizeof(ErlFDBTenant));
+    ten->tenant = tenant;
+
+    ret = enif_make_resource(env, ten);
+    enif_release_resource(ten);
+
+    return T2(env, ATOM_erlfdb_tenant, ret);
+}
+
+
+static ERL_NIF_TERM
 erlfdb_database_set_option(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
@@ -867,6 +915,56 @@ erlfdb_database_create_transaction(
     d = (ErlFDBDatabase*) res;
 
     err = fdb_database_create_transaction(d->database, &transaction);
+    if(err != 0) {
+        return erlfdb_erlang_error(env, err);
+    }
+
+    t = enif_alloc_resource(ErlFDBTransactionRes, sizeof(ErlFDBTransaction));
+    t->transaction = transaction;
+
+    enif_self(env, &pid);
+    t->owner = enif_make_pid(env, &pid);
+
+    t->txid = 0;
+    t->read_only = true;
+    t->writes_allowed = true;
+    t->has_watches = false;
+
+    ret = enif_make_resource(env, t);
+    enif_release_resource(t);
+    return T2(env, ATOM_erlfdb_transaction, ret);
+}
+
+static ERL_NIF_TERM
+erlfdb_tenant_create_transaction(
+        ErlNifEnv* env,
+        int argc,
+        const ERL_NIF_TERM argv[]
+    )
+{
+    ErlFDBSt* st = (ErlFDBSt*) enif_priv_data(env);
+    ErlFDBTenant* ten;
+    ErlFDBTransaction* t;
+    FDBTransaction* transaction;
+    ErlNifPid pid;
+    ERL_NIF_TERM ret;
+    void* res;
+    fdb_error_t err;
+
+    if(st->lib_state != ErlFDB_CONNECTED) {
+        return enif_make_badarg(env);
+    }
+
+    if(argc != 1) {
+        return enif_make_badarg(env);
+    }
+
+    if(!enif_get_resource(env, argv[0], ErlFDBTenantRes, &res)) {
+        return enif_make_badarg(env);
+    }
+    ten = (ErlFDBTenant*) res;
+
+    err = fdb_tenant_create_transaction(ten->tenant, &transaction);
     if(err != 0) {
         return erlfdb_erlang_error(env, err);
     }
@@ -994,6 +1092,10 @@ erlfdb_transaction_set_option(
 #if FDB_API_VERSION > 620
     } else if(IS_ATOM(argv[1], report_conflicting_keys)) {
         option = FDB_TR_OPTION_REPORT_CONFLICTING_KEYS;
+#endif
+#if FDB_API_VERSION > 630
+    } else if(IS_ATOM(argv[1], special_key_space_enable_writes)) {
+        option = FDB_TR_OPTION_SPECIAL_KEY_SPACE_ENABLE_WRITES;
 #endif
     } else {
         return enif_make_badarg(env);
@@ -2261,7 +2363,9 @@ static ErlNifFunc funcs[] =
 
     NIF_FUNC(erlfdb_create_database, 1),
     NIF_FUNC(erlfdb_database_set_option, 3),
+    NIF_FUNC(erlfdb_database_open_tenant, 2),
     NIF_FUNC(erlfdb_database_create_transaction, 1),
+    NIF_FUNC(erlfdb_tenant_create_transaction, 1),
 
     NIF_FUNC(erlfdb_transaction_set_option, 3),
     NIF_FUNC(erlfdb_transaction_set_read_version, 2),

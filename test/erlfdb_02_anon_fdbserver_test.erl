@@ -21,51 +21,61 @@ basic_init_test() ->
 basic_open_test() ->
     {ok, ClusterFile} = erlfdb_util:init_test_cluster([]),
     Db = erlfdb:open(ClusterFile),
-    erlfdb:transactional(Db, fun(Tx) ->
+    erlfdb:transactional(Db, fun(_Tx) ->
         ?assert(true)
     end).
 
 get_db_test() ->
     Db = erlfdb_util:get_test_db(),
-    erlfdb:transactional(Db, fun(Tx) ->
+    erlfdb:transactional(Db, fun(_Tx) ->
         ?assert(true)
     end).
 
 get_set_get_test() ->
     Db = erlfdb_util:get_test_db(),
-    Key = gen_key(8),
-    Val = crypto:strong_rand_bytes(8),
-    erlfdb:transactional(Db, fun(Tx) ->
-        ?assertEqual(not_found, erlfdb:wait(erlfdb:get(Tx, Key)))
-    end),
-    erlfdb:transactional(Db, fun(Tx) ->
-        ?assertEqual(ok, erlfdb:set(Tx, Key, Val))
-    end),
-    erlfdb:transactional(Db, fun(Tx) ->
-        ?assertEqual(Val, erlfdb:wait(erlfdb:get(Tx, Key)))
-    end).
+    get_set_get(Db).
 
 get_empty_test() ->
-    Db1 = erlfdb_util:get_test_db(),
+    Db = erlfdb_util:get_test_db(),
+    Tenant1 = erlfdb_util:create_and_open_test_tenant(Db, []),
     Key = gen_key(8),
     Val = crypto:strong_rand_bytes(8),
-    erlfdb:transactional(Db1, fun(Tx) ->
+    erlfdb:transactional(Tenant1, fun(Tx) ->
         ok = erlfdb:set(Tx, Key, Val)
     end),
-    erlfdb:transactional(Db1, fun(Tx) ->
+    erlfdb:transactional(Tenant1, fun(Tx) ->
         ?assertEqual(Val, erlfdb:wait(erlfdb:get(Tx, Key)))
     end),
 
     % Check we can get an empty db
-    Db2 = erlfdb_util:get_test_db([empty]),
-    erlfdb:transactional(Db2, fun(Tx) ->
+    Tenant2 = erlfdb_util:create_and_open_test_tenant(Db, [empty]),
+    erlfdb:transactional(Tenant2, fun(Tx) ->
         ?assertEqual(not_found, erlfdb:wait(erlfdb:get(Tx, Key)))
     end),
 
     % And check state that the old db handle is
     % the same
-    erlfdb:transactional(Db1, fun(Tx) ->
+    erlfdb:transactional(Tenant1, fun(Tx) ->
         ?assertEqual(not_found, erlfdb:wait(erlfdb:get(Tx, Key)))
+    end).
+
+get_set_get_tenant_test() ->
+    Db = erlfdb_util:get_test_db(),
+    Tenant = erlfdb_util:create_and_open_test_tenant(Db, []),
+    get_set_get(Tenant),
+    erlfdb_util:clear_and_delete_test_tenant(Db).
+
+get_set_get(DbOrTenant) ->
+    Key = gen_key(8),
+    Val = crypto:strong_rand_bytes(8),
+    erlfdb:transactional(DbOrTenant, fun(Tx) ->
+        ?assertEqual(not_found, erlfdb:wait(erlfdb:get(Tx, Key)))
+    end),
+    erlfdb:transactional(DbOrTenant, fun(Tx) ->
+        ?assertEqual(ok, erlfdb:set(Tx, Key, Val))
+    end),
+    erlfdb:transactional(DbOrTenant, fun(Tx) ->
+        ?assertEqual(Val, erlfdb:wait(erlfdb:get(Tx, Key)))
     end).
 
 gen_key(Size) when is_integer(Size), Size > 1 ->

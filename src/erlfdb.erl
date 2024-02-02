@@ -18,7 +18,11 @@
     open/0,
     open/1,
 
+    open_tenant/2,
+
     create_transaction/1,
+    tenant_create_transaction/1,
+
     transactional/2,
     snapshot/1,
 
@@ -127,6 +131,7 @@
 -define(IS_FUTURE, {erlfdb_future, _, _}).
 -define(IS_FOLD_FUTURE, {fold_info, _, _}).
 -define(IS_DB, {erlfdb_database, _}).
+-define(IS_TENANT, {erlfdb_tenant, _}).
 -define(IS_TX, {erlfdb_transaction, _}).
 -define(IS_SS, {erlfdb_snapshot, _}).
 -define(GET_TX(SS), element(2, SS)).
@@ -149,12 +154,22 @@ open() ->
 open(ClusterFile) ->
     erlfdb_nif:create_database(ClusterFile).
 
+open_tenant(?IS_DB = Db, TenantName) ->
+    erlfdb_nif:database_open_tenant(Db, TenantName).
+
 create_transaction(?IS_DB = Db) ->
     erlfdb_nif:database_create_transaction(Db).
+
+tenant_create_transaction(?IS_TENANT = Tenant) ->
+    erlfdb_nif:tenant_create_transaction(Tenant).
 
 transactional(?IS_DB = Db, UserFun) when is_function(UserFun, 1) ->
     clear_erlfdb_error(),
     Tx = create_transaction(Db),
+    do_transaction(Tx, UserFun);
+transactional(?IS_TENANT = Tenant, UserFun) when is_function(UserFun, 1) ->
+    clear_erlfdb_error(),
+    Tx = tenant_create_transaction(Tenant),
     do_transaction(Tx, UserFun);
 transactional(?IS_TX = Tx, UserFun) when is_function(UserFun, 1) ->
     UserFun(Tx);

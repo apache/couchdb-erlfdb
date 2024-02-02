@@ -18,6 +18,9 @@
 
     init_test_cluster/1,
 
+    create_and_open_test_tenant/2,
+    clear_and_delete_test_tenant/1,
+
     get/2,
     get/3,
 
@@ -27,21 +30,14 @@
     debug_cluster/3
 ]).
 
+-define(TEST_TENANT_NAME, <<?MODULE_STRING, ".test">>).
+
 get_test_db() ->
     get_test_db([]).
 
 get_test_db(Options) ->
     {ok, ClusterFile} = init_test_cluster(Options),
-    Db = erlfdb:open(ClusterFile),
-    case proplists:get_value(empty, Options) of
-        true ->
-            erlfdb:transactional(Db, fun(Tx) ->
-                erlfdb:clear_range(Tx, <<>>, <<16#FE, 16#FF, 16#FF, 16#FF>>)
-            end);
-        _ ->
-            ok
-    end,
-    Db.
+    erlfdb:open(ClusterFile).
 
 init_test_cluster(Options) ->
     % Hack to ensure erlfdb app environment is loaded during unit tests
@@ -54,6 +50,52 @@ init_test_cluster(Options) ->
         undefined ->
             init_test_cluster_int(Options)
     end.
+
+create_and_open_test_tenant(Db, Options) ->
+    case proplists:get_value(empty, Options) of
+        true ->
+            clear_test_tenant(Db);
+        _ ->
+            ok
+    end,
+    erlfdb_tenant_management:transactional(Db,
+        fun(Tx) ->
+                case erlfdb:wait(erlfdb_tenant_management:get_tenant(Tx, ?TEST_TENANT_NAME)) of
+                    not_found ->
+                        erlfdb_tenant_management:create_tenant(Tx, ?TEST_TENANT_NAME);
+                    _ ->
+                        ok
+                end
+        end),
+    erlfdb:open_tenant(Db, ?TEST_TENANT_NAME).
+
+clear_test_tenant(Db) ->
+    TenantClearFun =
+        fun(Tx) ->
+            case erlfdb:wait(erlfdb:get_range(Tx, <<>>, <<16#FF>>, [{limit, 1}])) of
+                [] ->
+                    ok;
+                _ ->
+                    erlfdb:clear_range(Tx, <<>>, <<16#FE, 16#FF, 16#FF, 16#FF>>)
+            end
+        end,
+    Tenant = erlfdb:open_tenant(Db, ?TEST_TENANT_NAME),
+    erlfdb:transactional(Tenant, TenantClearFun).
+
+clear_and_delete_test_tenant(Db) ->
+    TenantDeleteFun =
+        fun(Tx) ->
+            case erlfdb:wait(erlfdb_tenant_management:get_tenant(Tx, ?TEST_TENANT_NAME)) of
+                not_found ->
+                    ok;
+                _ ->
+                    % embedded transaction
+                    clear_test_tenant(Db),
+
+                    erlfdb_tenant_management:delete_tenant(Db, ?TEST_TENANT_NAME)
+            end
+        end,
+    erlfdb_tenant_management:transactional(Db, TenantDeleteFun).
 
 get(List, Key) ->
     get(List, Key, undefined).

@@ -15,6 +15,7 @@
 
 ErlNifResourceType* ErlFDBFutureRes;
 ErlNifResourceType* ErlFDBDatabaseRes;
+ErlNifResourceType* ErlFDBTenantRes;
 ErlNifResourceType* ErlFDBTransactionRes;
 
 
@@ -43,6 +44,18 @@ erlfdb_init_resources(ErlNifEnv* env)
             NULL
         );
     if(ErlFDBDatabaseRes == NULL) {
+        return 0;
+    }
+
+    ErlFDBTenantRes = enif_open_resource_type(
+            env,
+            NULL,
+            "erlfdb_tenant",
+            erlfdb_tenant_dtor,
+            ERL_NIF_RT_CREATE,
+            NULL
+        );
+    if(ErlFDBTenantRes == NULL) {
         return 0;
     }
 
@@ -88,6 +101,17 @@ erlfdb_database_dtor(ErlNifEnv* env, void* obj)
 
     if(d->database != NULL) {
         fdb_database_destroy(d->database);
+    }
+}
+
+
+void
+erlfdb_tenant_dtor(ErlNifEnv* env, void* obj)
+{
+    ErlFDBTenant* ten = (ErlFDBTenant*) obj;
+
+    if(ten->tenant != NULL) {
+        fdb_tenant_destroy(ten->tenant);
     }
 }
 

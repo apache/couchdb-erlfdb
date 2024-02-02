@@ -13,8 +13,11 @@
 #ifndef ERLFDB_FDB_H
 #define ERLFDB_FDB_H
 
+// FDB_LATEST_API_VERSION
+#include <foundationdb/fdb_c_apiversion.g.h>
+
 #ifndef FDB_API_VERSION
-#define FDB_API_VERSION 620
+#define FDB_API_VERSION FDB_LATEST_API_VERSION
 #endif // Allow command-line override of default FDB_API_VERSION
 
 #include <foundationdb/fdb_c.h>

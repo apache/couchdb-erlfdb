@@ -21,6 +21,7 @@
 
 extern ErlNifResourceType* ErlFDBFutureRes;
 extern ErlNifResourceType* ErlFDBDatabaseRes;
+extern ErlNifResourceType* ErlFDBTenantRes;
 extern ErlNifResourceType* ErlFDBTransactionRes;
 
 
@@ -54,6 +55,10 @@ typedef struct _ErlFDBDatabase
     FDBDatabase* database;
 } ErlFDBDatabase;
 
+typedef struct _ErlFDBTenant
+{
+    FDBTenant* tenant;
+} ErlFDBTenant;
 
 typedef struct _ErlFDBTransaction
 {
@@ -69,6 +74,7 @@ typedef struct _ErlFDBTransaction
 int erlfdb_init_resources(ErlNifEnv* env);
 void erlfdb_future_dtor(ErlNifEnv* env, void* obj);
 void erlfdb_database_dtor(ErlNifEnv* env, void* obj);
+void erlfdb_tenant_dtor(ErlNifEnv* env, void* obj);
 void erlfdb_transaction_dtor(ErlNifEnv* env, void* obj);
 
 
