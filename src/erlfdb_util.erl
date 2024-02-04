@@ -260,7 +260,7 @@ init_fdb_db(ClusterFile, Options) ->
             DefaultFDBCli -> "fdbcli";
             FDBCli0 -> FDBCli0
         end,
-    Fmt = "~s -C ~s --exec \"configure new single ssd\"",
+    Fmt = "~s -C ~s --exec \"configure new single ssd tenant_mode=optional_experimental\"",
     Cmd = lists:flatten(io_lib:format(Fmt, [FDBCli, ClusterFile])),
     case os:cmd(Cmd) of
         "Database created" ++ _ -> ok;
