@@ -30,6 +30,9 @@
     debug_cluster/3
 ]).
 
+% Some systems are unable to compute the shared machine id without root,
+% so we'll provide a hardcoded machine id for our managed fdbserver
+-define(TEST_CLUSTER_MACHINE_ID, <<?MODULE_STRING>>).
 -define(TEST_TENANT_NAME, <<?MODULE_STRING, ".test">>).
 
 get_test_db() ->
@@ -167,7 +170,9 @@ init_test_cluster_int(Options) ->
             <<"-d">>,
             Dir,
             <<"-L">>,
-            Dir
+            Dir,
+            <<"-i">>,
+            ?TEST_CLUSTER_MACHINE_ID
         ],
         FDBPortOpts = [{args, FDBPortArgs}],
         FDBServer = erlang:open_port(FDBPortName, FDBPortOpts),
