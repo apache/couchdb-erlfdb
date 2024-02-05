@@ -19,7 +19,13 @@
     init_test_cluster/1,
 
     create_and_open_test_tenant/2,
+    create_and_open_tenant/3,
+
     clear_and_delete_test_tenant/1,
+    clear_and_delete_tenant/2,
+
+    clear_test_tenant/1,
+    clear_tenant/2,
 
     get/2,
     get/3,
@@ -55,24 +61,48 @@ init_test_cluster(Options) ->
     end.
 
 create_and_open_test_tenant(Db, Options) ->
+    create_and_open_tenant(Db, Options, ?TEST_TENANT_NAME).
+
+create_and_open_tenant(Db, Options, TenantName) ->
     case proplists:get_value(empty, Options) of
         true ->
-            clear_test_tenant(Db);
+            clear_tenant(Db, TenantName);
         _ ->
             ok
     end,
     erlfdb_tenant_management:transactional(Db,
         fun(Tx) ->
-                case erlfdb:wait(erlfdb_tenant_management:get_tenant(Tx, ?TEST_TENANT_NAME)) of
+                case erlfdb:wait(erlfdb_tenant_management:get_tenant(Tx, TenantName)) of
                     not_found ->
-                        erlfdb_tenant_management:create_tenant(Tx, ?TEST_TENANT_NAME);
+                        erlfdb_tenant_management:create_tenant(Tx, TenantName);
                     _ ->
                         ok
                 end
         end),
-    erlfdb:open_tenant(Db, ?TEST_TENANT_NAME).
+    erlfdb:open_tenant(Db, TenantName).
+
+clear_and_delete_test_tenant(Db) ->
+    clear_and_delete_tenant(Db, ?TEST_TENANT_NAME).
+
+clear_and_delete_tenant(Db, TenantName) ->
+    TenantDeleteFun =
+        fun(Tx) ->
+            case erlfdb:wait(erlfdb_tenant_management:get_tenant(Tx, TenantName)) of
+                not_found ->
+                    ok;
+                _ ->
+                    % embedded transaction
+                    clear_tenant(Db, TenantName),
+
+                    erlfdb_tenant_management:delete_tenant(Db, TenantName)
+            end
+        end,
+    erlfdb_tenant_management:transactional(Db, TenantDeleteFun).
 
 clear_test_tenant(Db) ->
+    clear_tenant(Db, ?TEST_TENANT_NAME).
+
+clear_tenant(Db, TenantName) ->
     TenantClearFun =
         fun(Tx) ->
             case erlfdb:wait(erlfdb:get_range(Tx, <<>>, <<16#FF>>, [{limit, 1}])) of
@@ -82,23 +112,8 @@ clear_test_tenant(Db) ->
                     erlfdb:clear_range(Tx, <<>>, <<16#FE, 16#FF, 16#FF, 16#FF>>)
             end
         end,
-    Tenant = erlfdb:open_tenant(Db, ?TEST_TENANT_NAME),
+    Tenant = erlfdb:open_tenant(Db, TenantName),
     erlfdb:transactional(Tenant, TenantClearFun).
-
-clear_and_delete_test_tenant(Db) ->
-    TenantDeleteFun =
-        fun(Tx) ->
-            case erlfdb:wait(erlfdb_tenant_management:get_tenant(Tx, ?TEST_TENANT_NAME)) of
-                not_found ->
-                    ok;
-                _ ->
-                    % embedded transaction
-                    clear_test_tenant(Db),
-
-                    erlfdb_tenant_management:delete_tenant(Db, ?TEST_TENANT_NAME)
-            end
-        end,
-    erlfdb_tenant_management:transactional(Db, TenantDeleteFun).
 
 get(List, Key) ->
     get(List, Key, undefined).
