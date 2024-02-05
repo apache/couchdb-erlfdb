@@ -66,7 +66,7 @@ create_and_open_test_tenant(Db, Options) ->
 create_and_open_tenant(Db, Options, TenantName) ->
     case proplists:get_value(empty, Options) of
         true ->
-            clear_tenant(Db, TenantName);
+            clear_and_delete_tenant(Db, TenantName);
         _ ->
             ok
     end,
