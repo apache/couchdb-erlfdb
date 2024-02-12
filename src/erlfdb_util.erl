@@ -66,7 +66,12 @@ create_and_open_test_tenant(Db, Options) ->
 create_and_open_tenant(Db, Options, TenantName) ->
     case proplists:get_value(empty, Options) of
         true ->
-            clear_and_delete_tenant(Db, TenantName);
+            case erlfdb_tenant_management:get_tenant(Db, TenantName) of
+                not_found ->
+                    ok;
+                _ ->
+                    clear_tenant(Db, TenantName)
+            end;
         _ ->
             ok
     end,
