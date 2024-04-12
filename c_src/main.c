@@ -79,19 +79,22 @@ erlfdb_future_cb(FDBFuture* fdb_future, void* data)
     // submitted to the network thread or not so that
     // we pass the correct environment to enif_send
     if(enif_thread_type() == ERL_NIF_THR_UNDEFINED) {
+        enif_mutex_lock(future->lock);
         caller = NULL;
     } else {
         caller = future->pid_env;
     }
 
-    enif_mutex_lock(future->lock);
+
 
     if(!future->cancelled) {
         msg = T2(future->msg_env, future->msg_ref, ATOM_ready);
         enif_send(caller, &(future->pid), future->msg_env, msg);
     }
 
-    enif_mutex_unlock(future->lock);
+    if (!caller) {
+        enif_mutex_unlock(future->lock);
+    }
 
     // We're now done with this future which means we need
     // to release our handle to it. See erlfdb_create_future
@@ -591,7 +594,7 @@ erlfdb_future_cancel(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     future = (ErlFDBFuture*) res;
 
     enif_mutex_lock(future->lock);
-
+    future->pid_env = env;
     future->cancelled = true;
     fdb_future_cancel(future->future);
 
