@@ -12,7 +12,20 @@ github:
     rebase: true
     merge: true
 
+  rulesets:
+    - name: "Default Branch Protection"
+      type: branch
+      branches:
+        includes:
+          - "~DEFAULT_BRANCH"
+          - "release/*"
+          - "rel/*"
+        excludes: []
+      bypass_teams:
+        - root
+      restrict_deletion: true
+      restrict_force_push: true
 notifications:
-    commits: commits@couchdb.apache.org
-    issues: notifications@couchdb.apache.org
-    pullrequests: notifications@couchdb.apache.org
+  commits: commits@couchdb.apache.org
+  issues: notifications@couchdb.apache.org
+  pullrequests: notifications@couchdb.apache.org
